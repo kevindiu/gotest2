@@ -312,8 +312,7 @@ type testGenericSumTestCase[T int | float64] struct {
 		a T
 		b T
 	}
-	want testGenericSumWants[T]
-
+	want     testGenericSumWants[T]
 	Init     func(t *testing.T, tt *testGenericSumTestCase[T])
 	Cleanup  func(t *testing.T, tt *testGenericSumTestCase[T])
 	Validate func(t *testing.T, got0 T, tt *testGenericSumTestCase[T]) error
@@ -325,7 +324,6 @@ type testMyList_AddTestCase[T any] struct {
 	args     struct {
 		item T
 	}
-
 	Init     func(t *testing.T, tt *testMyList_AddTestCase[T])
 	Cleanup  func(t *testing.T, tt *testMyList_AddTestCase[T])
 	Validate func(t *testing.T, tt *testMyList_AddTestCase[T]) error
@@ -341,8 +339,7 @@ type testMyList_GetTestCase[T any] struct {
 	args     struct {
 		index int
 	}
-	want testMyList_GetWants[T]
-
+	want     testMyList_GetWants[T]
 	Init     func(t *testing.T, tt *testMyList_GetTestCase[T])
 	Cleanup  func(t *testing.T, tt *testMyList_GetTestCase[T])
 	Validate func(t *testing.T, got0 T, tt *testMyList_GetTestCase[T]) error
@@ -359,8 +356,7 @@ type testSwapTestCase[T any] struct {
 		a T
 		b T
 	}
-	want testSwapWants[T]
-
+	want     testSwapWants[T]
 	Init     func(t *testing.T, tt *testSwapTestCase[T])
 	Cleanup  func(t *testing.T, tt *testSwapTestCase[T])
 	Validate func(t *testing.T, got0 T, got1 T, tt *testSwapTestCase[T]) error

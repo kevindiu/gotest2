@@ -92,16 +92,10 @@ func runTestGenericMultiError[T any](t *testing.T, cases []testGenericMultiError
 			if !reflect.DeepEqual(got0, tt.want.want0) {
 				return fmt.Errorf("GenericMultiError() got0 = %v, want %v", got0, tt.want.want0)
 			}
-			if (gotErr1 != nil) != (tt.want.wantErr1 != nil) {
+			if fmt.Sprint(gotErr1) != fmt.Sprint(tt.want.wantErr1) {
 				return fmt.Errorf("GenericMultiError() error1 = %v, wantErr1 %v", gotErr1, tt.want.wantErr1)
 			}
-			if gotErr1 != nil && tt.want.wantErr1 != nil && gotErr1.Error() != tt.want.wantErr1.Error() {
-				return fmt.Errorf("GenericMultiError() error1 = %v, wantErr1 %v", gotErr1, tt.want.wantErr1)
-			}
-			if (gotErr2 != nil) != (tt.want.wantErr2 != nil) {
-				return fmt.Errorf("GenericMultiError() error2 = %v, wantErr2 %v", gotErr2, tt.want.wantErr2)
-			}
-			if gotErr2 != nil && tt.want.wantErr2 != nil && gotErr2.Error() != tt.want.wantErr2.Error() {
+			if fmt.Sprint(gotErr2) != fmt.Sprint(tt.want.wantErr2) {
 				return fmt.Errorf("GenericMultiError() error2 = %v, wantErr2 %v", gotErr2, tt.want.wantErr2)
 			}
 			return nil
@@ -141,8 +135,7 @@ type testGenericMultiErrorTestCase[T any] struct {
 		val T
 		n   int
 	}
-	want testGenericMultiErrorWants[T]
-
+	want     testGenericMultiErrorWants[T]
 	Init     func(t *testing.T, tt *testGenericMultiErrorTestCase[T])
 	Cleanup  func(t *testing.T, tt *testGenericMultiErrorTestCase[T])
 	Validate func(t *testing.T, got0 T, gotErr1 error, gotErr2 error, tt *testGenericMultiErrorTestCase[T]) error

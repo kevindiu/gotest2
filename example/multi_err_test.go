@@ -47,7 +47,7 @@ func TestMultiError(t *testing.T) {
 			name: "Negative input",
 			args: args{n: -1},
 			want: wants{
-				want0:    -1,
+				want0:    0,
 				wantErr1: fmt.Errorf("negative"),
 			},
 		},

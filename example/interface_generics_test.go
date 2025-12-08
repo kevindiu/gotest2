@@ -171,8 +171,7 @@ type testBox_GetTestCase[T any] struct {
 	receiver *Box[T]
 	args     struct {
 	}
-	want testBox_GetWants[T]
-
+	want     testBox_GetWants[T]
 	Init     func(t *testing.T, tt *testBox_GetTestCase[T])
 	Cleanup  func(t *testing.T, tt *testBox_GetTestCase[T])
 	Validate func(t *testing.T, got0 T, tt *testBox_GetTestCase[T]) error
@@ -184,7 +183,6 @@ type testBox_PutTestCase[T any] struct {
 	args     struct {
 		v T
 	}
-
 	Init     func(t *testing.T, tt *testBox_PutTestCase[T])
 	Cleanup  func(t *testing.T, tt *testBox_PutTestCase[T])
 	Validate func(t *testing.T, tt *testBox_PutTestCase[T]) error
@@ -196,7 +194,6 @@ type testProcessContainerTestCase[T any] struct {
 		c   Container[T]
 		val T
 	}
-
 	Init     func(t *testing.T, tt *testProcessContainerTestCase[T])
 	Cleanup  func(t *testing.T, tt *testProcessContainerTestCase[T])
 	Validate func(t *testing.T, tt *testProcessContainerTestCase[T]) error
