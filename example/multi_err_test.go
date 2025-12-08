@@ -28,16 +28,10 @@ func TestMultiError(t *testing.T) {
 		if !reflect.DeepEqual(got0, tt.want.want0) {
 			return fmt.Errorf("MultiError() got0 = %v, want %v", got0, tt.want.want0)
 		}
-		if (gotErr1 != nil) != (tt.want.wantErr1 != nil) {
+		if fmt.Sprint(gotErr1) != fmt.Sprint(tt.want.wantErr1) {
 			return fmt.Errorf("MultiError() error1 = %v, wantErr1 %v", gotErr1, tt.want.wantErr1)
 		}
-		if gotErr1 != nil && tt.want.wantErr1 != nil && gotErr1.Error() != tt.want.wantErr1.Error() {
-			return fmt.Errorf("MultiError() error1 = %v, wantErr1 %v", gotErr1, tt.want.wantErr1)
-		}
-		if (gotErr2 != nil) != (tt.want.wantErr2 != nil) {
-			return fmt.Errorf("MultiError() error2 = %v, wantErr2 %v", gotErr2, tt.want.wantErr2)
-		}
-		if gotErr2 != nil && tt.want.wantErr2 != nil && gotErr2.Error() != tt.want.wantErr2.Error() {
+		if fmt.Sprint(gotErr2) != fmt.Sprint(tt.want.wantErr2) {
 			return fmt.Errorf("MultiError() error2 = %v, wantErr2 %v", gotErr2, tt.want.wantErr2)
 		}
 		return nil

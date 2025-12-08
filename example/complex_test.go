@@ -22,10 +22,7 @@ func TestParseConfig(t *testing.T) {
 		Validate func(t *testing.T, gotErr error, tt *test) error
 	}
 	defaultValidate := func(t *testing.T, gotErr error, tt *test) error {
-		if (gotErr != nil) != (tt.want.wantErr != nil) {
-			return fmt.Errorf("ParseConfig() error = %v, wantErr %v", gotErr, tt.want.wantErr)
-		}
-		if gotErr != nil && tt.want.wantErr != nil && gotErr.Error() != tt.want.wantErr.Error() {
+		if fmt.Sprint(gotErr) != fmt.Sprint(tt.want.wantErr) {
 			return fmt.Errorf("ParseConfig() error = %v, wantErr %v", gotErr, tt.want.wantErr)
 		}
 		return nil

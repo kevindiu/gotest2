@@ -91,10 +91,7 @@ func TestDivMod(t *testing.T) {
 		if !reflect.DeepEqual(got1, tt.want.want1) {
 			return fmt.Errorf("DivMod() got1 = %v, want %v", got1, tt.want.want1)
 		}
-		if (gotErr != nil) != (tt.want.wantErr != nil) {
-			return fmt.Errorf("DivMod() error = %v, wantErr %v", gotErr, tt.want.wantErr)
-		}
-		if gotErr != nil && tt.want.wantErr != nil && gotErr.Error() != tt.want.wantErr.Error() {
+		if fmt.Sprint(gotErr) != fmt.Sprint(tt.want.wantErr) {
 			return fmt.Errorf("DivMod() error = %v, wantErr %v", gotErr, tt.want.wantErr)
 		}
 		return nil
