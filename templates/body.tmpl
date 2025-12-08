@@ -1,0 +1,29 @@
+{{template "header.tmpl" .}}
+
+{{range .Funcs}}
+    {{if .TypeParams}}
+        {{template "generic_test" .}}
+    {{else}}
+        {{template "standard_test" .}}
+    {{end}}
+{{end}}
+
+{{range .Funcs}}
+    {{if .TypeParams}}
+        {{template "generic_runner" .}}
+    {{end}}
+{{end}}
+
+{{range .Funcs}}
+    {{if .TypeParams}}
+        {{template "generic_struct" .}}
+    {{else}}
+        {{if not .HasLocalStruct}}
+            {{template "standard_struct" .}}
+        {{end}}
+    {{end}}
+{{end}}
+
+{{range .Funcs}}
+    {{template "fuzz" .}}
+{{end}}

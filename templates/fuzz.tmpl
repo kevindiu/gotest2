@@ -1,0 +1,31 @@
+{{define "fuzz"}}
+{{- if and .Fuzz (not .Receiver) }}
+    {{- $allParamsFuzzable := true }}
+    {{- range .Parameters }}
+        {{- if not (isFuzzable .Type) }}
+            {{- $allParamsFuzzable = false }}
+        {{- end }}
+    {{- end }}
+    
+    {{- if $allParamsFuzzable }}
+func Fuzz{{.Name}}(f *testing.F) {
+    // TODO: Add seed corpus
+    f.Fuzz(func(t *testing.T, {{range $i, $p := .Parameters}}{{if $i}}, {{end}}{{$p.Name}} {{$p.Type}}{{end}}) {
+        {{- if .Results }}
+            {{.Name}}(
+                {{- range $i, $p := .Parameters}}
+                {{$p.Name}},
+                {{- end}}
+            )
+        {{- else }}
+            {{.Name}}(
+                {{- range $i, $p := .Parameters}}
+                {{$p.Name}},
+                {{- end}}
+            )
+        {{- end }}
+    })
+}
+    {{- end }}
+{{- end }}
+{{end}}
