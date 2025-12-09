@@ -32,4 +32,5 @@ type FileResult struct {
 	Path        string
 	PackageName string
 	Functions   []*FunctionInfo
+	Imports     []string
 }

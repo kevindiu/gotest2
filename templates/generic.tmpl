@@ -3,15 +3,16 @@
 {{- $testFuncName := .Name }}
 {{- if .Receiver}}
     {{- $testFuncName = printf "%s_%s" (receiverName .Receiver.Type) .Name }}
+{{- else if not .IsExported }}
+    {{- $testFuncName = printf "_%s" .Name }}
 {{- end }}
-
 func Test{{$testFuncName}}(t *testing.T) {
     {{- if .Parallel }}
     t.Parallel()
     {{- end }}
     // TODO: Add test cases.
 	t.Run("int", func(t *testing.T) {
-		runTest{{$testFuncName}}[int](t, []test{{$testFuncName}}TestCase[int]{
+		test{{$testFuncName}}[int](t, []testCase{{$testFuncName}}[int]{
             // TODO: Add test cases.
         })
     })
@@ -22,16 +23,19 @@ func Test{{$testFuncName}}(t *testing.T) {
 {{end}}
 
 {{define "generic_runner"}}
+{{- $origFuncName := .Name }}
 {{- $testFuncName := .Name }}
 {{- if .Receiver}}
     {{- $testFuncName = printf "%s_%s" (receiverName .Receiver.Type) .Name }}
+{{- else if not .IsExported }}
+    {{- $testFuncName = printf "_%s" .Name }}
 {{- end }}
 
-func runTest{{$testFuncName}}[{{range .TypeParams}}{{.Name}} {{.Type}}, {{end}}](t *testing.T, cases []test{{$testFuncName}}TestCase[{{range .TypeParams}}{{.Name}}, {{end}}]) {
+func test{{$testFuncName}}[{{range .TypeParams}}{{.Name}} {{.Type}}, {{end}}](t *testing.T, cases []testCase{{$testFuncName}}[{{range .TypeParams}}{{.Name}}, {{end}}]) {
     {{- if .Parallel }}
     t.Parallel()
     {{- end }}
-    {{ $nonErrorResults := 0 }}
+    {{- $nonErrorResults := 0 }}
     {{- $errorCount := 0 }}
     {{- range $i, $r := .Results }}
         {{- if eq $r.Type "error" }}
@@ -44,7 +48,7 @@ func runTest{{$testFuncName}}[{{range .TypeParams}}{{.Name}} {{.Type}}, {{end}}]
     {{- $multipleErrors := gt $errorCount 1 }}
 	for _, tt := range cases {
         {{- if or (gt $nonErrorResults 0) $hasErr }}
-        defaultValidate := func(t *testing.T, {{range $i, $r := .Results}}{{if eq $r.Type "error"}}{{if $multipleErrors}}gotErr{{$i}} error{{else}}gotErr error{{end}}{{else}}got{{$i}} {{$r.Type}}{{end}}, {{end}}tt *test{{$testFuncName}}TestCase[{{range .TypeParams}}{{.Name}}, {{end}}]) error {
+        defaultValidate := func(t *testing.T, {{range $i, $r := .Results}}{{if eq $r.Type "error"}}{{if $multipleErrors}}gotErr{{$i}} error{{else}}gotErr error{{end}}{{else}}got{{$i}} {{$r.Type}}{{end}}, {{end}}tt *testCase{{$testFuncName}}[{{range .TypeParams}}{{.Name}}, {{end}}]) error {
             {{- $counter := 0 }}
             {{- range $i, $r := .Results }}
                 {{- if ne $r.Type "error" }}
@@ -68,20 +72,21 @@ func runTest{{$testFuncName}}[{{range .TypeParams}}{{.Name}} {{.Type}}, {{end}}]
             return nil
         }
         {{- else }}
-        defaultValidate := func(t *testing.T, tt *test{{$testFuncName}}TestCase[{{range .TypeParams}}{{.Name}}, {{end}}]) error {
+
+        defaultValidate := func(t *testing.T, tt *testCase{{$testFuncName}}[{{range .TypeParams}}{{.Name}}, {{end}}]) error {
             return nil
         }
         {{- end }}
+        defaultInit := func(t *testing.T, tt *testCase{{$testFuncName}}[{{range .TypeParams}}{{.Name}}, {{end}}]) {}
+        defaultCleanup := func(t *testing.T, tt *testCase{{$testFuncName}}[{{range .TypeParams}}{{.Name}}, {{end}}]) {}
 		t.Run(tt.name, func(t *testing.T) {
             {{- if .Parallel }}
             t.Parallel()
             {{- end }}
-            if tt.Init != nil {
-                tt.Init(t, &tt)
-            }
-            if tt.Cleanup != nil {
-                defer tt.Cleanup(t, &tt)
-            }{{ $resultsLen := len .Results }}{{if eq $resultsLen 0}}
+            if tt.init == nil { tt.init = defaultInit }
+            tt.init(t, &tt)
+            if tt.cleanup == nil { tt.cleanup = defaultCleanup }
+            defer tt.cleanup(t, &tt){{ $resultsLen := len .Results }}{{if eq $resultsLen 0}}
             {{if .Receiver}}tt.receiver.{{end}}{{.Name}}(
 				{{- range .Parameters}}
 				tt.args.{{.Name}}{{if .IsVariadic}}...{{end}},
@@ -98,11 +103,8 @@ func runTest{{$testFuncName}}[{{range .TypeParams}}{{.Name}} {{.Type}}, {{end}}]
 				{{- end}}
 			)
             {{- end}}
-            validation := defaultValidate
-            if tt.Validate != nil {
-                validation = tt.Validate
-            }
-            if err := validation(t, {{range $i, $r := .Results}}{{if eq $r.Type "error"}}{{if $multipleErrors}}err{{$i}}{{else}}err{{end}}{{else}}got{{$i}}{{end}}, {{end}}&tt); err != nil {
+            if tt.validate == nil { tt.validate = defaultValidate }
+            if err := tt.validate(t, {{range $i, $r := .Results}}{{if eq $r.Type "error"}}{{if $multipleErrors}}err{{$i}}{{else}}err{{end}}{{else}}got{{$i}}{{end}}, {{end}}&tt); err != nil {
                 t.Errorf("{{$testFuncName}}() validation failed: %v", err)
             }
 		})
@@ -114,6 +116,8 @@ func runTest{{$testFuncName}}[{{range .TypeParams}}{{.Name}} {{.Type}}, {{end}}]
 {{- $testFuncName := .Name }}
 {{- if .Receiver}}
     {{- $testFuncName = printf "%s_%s" (receiverName .Receiver.Type) .Name }}
+{{- else if not .IsExported }}
+    {{- $testFuncName = printf "_%s" .Name }}
 {{- end }}
     {{- $nonErrorResults := 0 }}
     {{- $errorCount := 0 }}
@@ -144,7 +148,7 @@ func runTest{{$testFuncName}}[{{range .TypeParams}}{{.Name}} {{.Type}}, {{end}}]
     }
     {{- end}}
 
-    type test{{$testFuncName}}TestCase[{{range .TypeParams}}{{.Name}} {{.Type}}, {{end}}] struct {
+    type testCase{{$testFuncName}}[{{range .TypeParams}}{{.Name}} {{.Type}}, {{end}}] struct {
         name string
         {{- if .Receiver}}
         receiver {{.Receiver.Type}}
@@ -157,12 +161,12 @@ func runTest{{$testFuncName}}[{{range .TypeParams}}{{.Name}} {{.Type}}, {{end}}]
         {{- if or (gt $nonErrorResults 0) $hasErr }}
         want test{{$testFuncName}}Wants[{{range .TypeParams}}{{.Name}}, {{end}}]
         {{- end}}
-        Init func(t *testing.T, tt *test{{$testFuncName}}TestCase[{{range .TypeParams}}{{.Name}}, {{end}}])
-        Cleanup func(t *testing.T, tt *test{{$testFuncName}}TestCase[{{range .TypeParams}}{{.Name}}, {{end}}])
+        init func(t *testing.T, tt *testCase{{$testFuncName}}[{{range .TypeParams}}{{.Name}}, {{end}}])
+        cleanup func(t *testing.T, tt *testCase{{$testFuncName}}[{{range .TypeParams}}{{.Name}}, {{end}}])
         {{- if or (gt $nonErrorResults 0) $hasErr }}
-        Validate func(t *testing.T, {{range $i, $r := .Results}}{{if eq $r.Type "error"}}{{if $multipleErrors}}gotErr{{$i}} error{{else}}gotErr error{{end}}{{else}}got{{$i}} {{$r.Type}}{{end}}, {{end}}tt *test{{$testFuncName}}TestCase[{{range .TypeParams}}{{.Name}}, {{end}}]) error
+        validate func(t *testing.T, {{range $i, $r := .Results}}{{if eq $r.Type "error"}}{{if $multipleErrors}}gotErr{{$i}} error{{else}}gotErr error{{end}}{{else}}got{{$i}} {{$r.Type}}{{end}}, {{end}}tt *testCase{{$testFuncName}}[{{range .TypeParams}}{{.Name}}, {{end}}]) error
         {{- else }}
-        Validate func(t *testing.T, tt *test{{$testFuncName}}TestCase[{{range .TypeParams}}{{.Name}}, {{end}}]) error
+        validate func(t *testing.T, tt *testCase{{$testFuncName}}[{{range .TypeParams}}{{.Name}}, {{end}}]) error
         {{- end }}
     }
 {{end}}

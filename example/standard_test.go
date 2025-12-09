@@ -19,9 +19,9 @@ func TestAdd(t *testing.T) {
 		name     string
 		args     args
 		want     wants
-		Init     func(t *testing.T, tt *test)
-		Cleanup  func(t *testing.T, tt *test)
-		Validate func(t *testing.T, got0 int, tt *test) error
+		init     func(t *testing.T, tt *test)
+		cleanup  func(t *testing.T, tt *test)
+		validate func(t *testing.T, got0 int, tt *test) error
 	}
 	defaultValidate := func(t *testing.T, got0 int, tt *test) error {
 		if !reflect.DeepEqual(got0, tt.want.want0) {
@@ -29,36 +29,30 @@ func TestAdd(t *testing.T) {
 		}
 		return nil
 	}
+	defaultInit := func(t *testing.T, tt *test) {}
+	defaultCleanup := func(t *testing.T, tt *test) {}
 	tests := []test{
-		{
-			name: "1+1=2",
-			args: args{a: 1, b: 1},
-			want: wants{want0: 2},
-		},
-		{
-			name: "10+20=30",
-			args: args{a: 10, b: 20},
-			want: wants{want0: 30},
-		},
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if tt.Init != nil {
-				tt.Init(t, &tt)
+			if tt.init == nil {
+				tt.init = defaultInit
 			}
-			if tt.Cleanup != nil {
-				defer tt.Cleanup(t, &tt)
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
 			}
+			defer tt.cleanup(t, &tt)
 			got0 := Add(
 				tt.args.a,
 				tt.args.b,
 			)
-			validation := defaultValidate
-			if tt.Validate != nil {
-				validation = tt.Validate
+			if tt.validate == nil {
+				tt.validate = defaultValidate
 			}
-			if err := validation(t, got0, &tt); err != nil {
+			if err := tt.validate(t, got0, &tt); err != nil {
 				t.Errorf("Add() validation failed: %v", err)
 			}
 		})
@@ -80,9 +74,9 @@ func TestDivMod(t *testing.T) {
 		name     string
 		args     args
 		want     wants
-		Init     func(t *testing.T, tt *test)
-		Cleanup  func(t *testing.T, tt *test)
-		Validate func(t *testing.T, got0 int, got1 int, gotErr error, tt *test) error
+		init     func(t *testing.T, tt *test)
+		cleanup  func(t *testing.T, tt *test)
+		validate func(t *testing.T, got0 int, got1 int, gotErr error, tt *test) error
 	}
 	defaultValidate := func(t *testing.T, got0 int, got1 int, gotErr error, tt *test) error {
 		if !reflect.DeepEqual(got0, tt.want.want0) {
@@ -96,40 +90,30 @@ func TestDivMod(t *testing.T) {
 		}
 		return nil
 	}
+	defaultInit := func(t *testing.T, tt *test) {}
+	defaultCleanup := func(t *testing.T, tt *test) {}
 	tests := []test{
-		{
-			name: "10/3",
-			args: args{a: 10, b: 3},
-			want: wants{want0: 3, want1: 1},
-		},
-		{
-			name: "divide by zero",
-			args: args{a: 10, b: 0},
-			want: wants{
-				want0:   0,
-				want1:   0,
-				wantErr: fmt.Errorf("division by zero"),
-			},
-		},
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if tt.Init != nil {
-				tt.Init(t, &tt)
+			if tt.init == nil {
+				tt.init = defaultInit
 			}
-			if tt.Cleanup != nil {
-				defer tt.Cleanup(t, &tt)
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
 			}
+			defer tt.cleanup(t, &tt)
 			got0, got1, err := DivMod(
 				tt.args.a,
 				tt.args.b,
 			)
-			validation := defaultValidate
-			if tt.Validate != nil {
-				validation = tt.Validate
+			if tt.validate == nil {
+				tt.validate = defaultValidate
 			}
-			if err := validation(t, got0, got1, err, &tt); err != nil {
+			if err := tt.validate(t, got0, got1, err, &tt); err != nil {
 				t.Errorf("DivMod() validation failed: %v", err)
 			}
 		})
@@ -149,9 +133,9 @@ func TestPerson_Greet(t *testing.T) {
 		receiver *Person
 		args     args
 		want     wants
-		Init     func(t *testing.T, tt *test)
-		Cleanup  func(t *testing.T, tt *test)
-		Validate func(t *testing.T, got0 string, tt *test) error
+		init     func(t *testing.T, tt *test)
+		cleanup  func(t *testing.T, tt *test)
+		validate func(t *testing.T, got0 string, tt *test) error
 	}
 	defaultValidate := func(t *testing.T, got0 string, tt *test) error {
 		if !reflect.DeepEqual(got0, tt.want.want0) {
@@ -159,38 +143,29 @@ func TestPerson_Greet(t *testing.T) {
 		}
 		return nil
 	}
+	defaultInit := func(t *testing.T, tt *test) {}
+	defaultCleanup := func(t *testing.T, tt *test) {}
 	tests := []test{
-		{
-			name: "Greet Alice",
-			receiver: &Person{
-				Name: "Alice",
-				Age:  30,
-			},
-			args: args{
-				msg: "Hello",
-			},
-			want: wants{
-				want0: "Hello, I am Alice",
-			},
-		},
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if tt.Init != nil {
-				tt.Init(t, &tt)
+			if tt.init == nil {
+				tt.init = defaultInit
 			}
-			if tt.Cleanup != nil {
-				defer tt.Cleanup(t, &tt)
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
 			}
+			defer tt.cleanup(t, &tt)
 			got0 := tt.receiver.Greet(
 				tt.args.msg,
 			)
-			validation := defaultValidate
-			if tt.Validate != nil {
-				validation = tt.Validate
+			if tt.validate == nil {
+				tt.validate = defaultValidate
 			}
-			if err := validation(t, got0, &tt); err != nil {
+			if err := tt.validate(t, got0, &tt); err != nil {
 				t.Errorf("Person_Greet() validation failed: %v", err)
 			}
 		})

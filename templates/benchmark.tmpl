@@ -1,0 +1,123 @@
+{{define "benchmark"}}
+{{- if .Benchmark }}
+{{- if .TypeParams}}
+    {{- $testFuncName := .Name }}
+    {{- if .Receiver}}
+        {{- $testFuncName = printf "%s_%s" (receiverName .Receiver.Type) .Name }}
+    {{- end }}
+    func Benchmark{{$testFuncName}}(b *testing.B) {
+        b.Run("int", func(b *testing.B) {
+            benchmark{{$testFuncName}}[int](b, []testCaseBenchmark{{$testFuncName}}[int]{
+                // TODO: Add benchmark cases
+            })
+        })
+    }
+{{- else}}
+{{- $testFuncName := .Name }}
+{{- if .Receiver}}
+    {{- $testFuncName = printf "%s_%s" (receiverName .Receiver.Type) .Name }}
+{{- else if not .IsExported }}
+    {{- $testFuncName = printf "_%s" .Name }}
+{{- end }}
+func Benchmark{{$testFuncName}}(b *testing.B) {
+    {{- if or .Parameters .Receiver}}
+    type args struct {
+        {{- range .Parameters}}
+        {{.Name}} {{.Type}}
+        {{- end}}
+    }
+    type test struct {
+        name string
+        args args
+        {{- if .Receiver}}
+        receiver {{.Receiver.Type}}
+        {{- end}}
+        init func(b *testing.B, tt *test)
+        cleanup func(b *testing.B, tt *test)
+    }
+    tests := []test{
+        // TODO: Add benchmark cases
+    }
+    defaultInit := func(b *testing.B, tt *test) {}
+    defaultCleanup := func(b *testing.B, tt *test) {}
+    for _, bb := range tests {
+        b.Run(bb.name, func(b *testing.B) {
+            if bb.init == nil { bb.init = defaultInit }
+            bb.init(b, &bb)
+            if bb.cleanup == nil { bb.cleanup = defaultCleanup }
+            defer bb.cleanup(b, &bb)
+            for i := 0; i < b.N; i++ {
+                {{if .Receiver}}bb.receiver.{{end}}{{.Name}}(
+                    {{- range .Parameters}}
+                    bb.args.{{.Name}}{{if .IsVariadic}}...{{end}},
+                    {{- end}}
+                )
+            }
+        })
+    }
+    {{- else}}
+    // No parameters, simple benchmark
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		{{.Name}}()
+	}
+    {{- end}}
+}
+{{- end}}
+{{- end }}
+{{end}}
+
+{{define "benchmark_runner"}}
+{{- if and .Benchmark .TypeParams}}
+    {{- $testFuncName := .Name }}
+    {{- if .Receiver}}
+        {{- $testFuncName = printf "%s_%s" (receiverName .Receiver.Type) .Name }}
+    {{- else if not .IsExported }}
+        {{- $testFuncName = printf "_%s" .Name }}
+    {{- end }}
+    func benchmark{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}{{$tp.Name}} {{$tp.Type}}{{end}}](b *testing.B, tests []testCaseBenchmark{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}{{$tp.Name}}{{end}}]) {
+        defaultInit := func(b *testing.B, tt *testCaseBenchmark{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}{{$tp.Name}}{{end}}]) {}
+        defaultCleanup := func(b *testing.B, tt *testCaseBenchmark{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}{{$tp.Name}}{{end}}]) {}
+        for _, bb := range tests {
+            b.Run(bb.name, func(b *testing.B) {
+                if bb.init == nil { bb.init = defaultInit }
+                bb.init(b, &bb)
+                if bb.cleanup == nil { bb.cleanup = defaultCleanup }
+                defer bb.cleanup(b, &bb)
+                b.ResetTimer()
+                for i := 0; i < b.N; i++ {
+                    {{if .Receiver}}bb.receiver.{{end}}{{.Name}}(
+                        {{- range .Parameters}}
+                        bb.args.{{.Name}}{{if .IsVariadic}}...{{end}},
+                        {{- end}}
+                    )
+                }
+            })
+        }
+    }
+{{- end}}
+{{end}}
+
+{{define "benchmark_struct"}}
+{{- if and .Benchmark .TypeParams}}
+    {{- $testFuncName := .Name }}
+    {{- if .Receiver}}
+        {{- $testFuncName = printf "%s_%s" (receiverName .Receiver.Type) .Name }}
+    {{- else if not .IsExported }}
+        {{- $testFuncName = printf "_%s" .Name }}
+    {{- end }}
+    type testCaseBenchmark{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}{{$tp.Name}} {{$tp.Type}}{{end}}] struct {
+        name string
+        args struct {
+            {{- range .Parameters}}
+            {{.Name}} {{.Type}}
+            {{- end}}
+        }
+        {{- if .Receiver}}
+        receiver {{.Receiver.Type}}
+        {{- end}}
+        init func(b *testing.B, tt *testCaseBenchmark{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}{{$tp.Name}}{{end}}])
+        cleanup func(b *testing.B, tt *testCaseBenchmark{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}{{$tp.Name}}{{end}}])
+    }
+{{- end}}
+{{end}}

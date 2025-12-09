@@ -1,0 +1,13 @@
+{{template "header.tmpl" .}}
+
+{{range .Funcs}}
+    {{template "benchmark" .}}
+{{end}}
+
+{{range .Funcs}}
+    {{template "benchmark_runner" .}}
+{{end}}
+
+{{range .Funcs}}
+    {{template "benchmark_struct" .}}
+{{end}}

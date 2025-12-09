@@ -20,9 +20,9 @@ func TestMultiError(t *testing.T) {
 		name     string
 		args     args
 		want     wants
-		Init     func(t *testing.T, tt *test)
-		Cleanup  func(t *testing.T, tt *test)
-		Validate func(t *testing.T, got0 int, gotErr1 error, gotErr2 error, tt *test) error
+		init     func(t *testing.T, tt *test)
+		cleanup  func(t *testing.T, tt *test)
+		validate func(t *testing.T, got0 int, gotErr1 error, gotErr2 error, tt *test) error
 	}
 	defaultValidate := func(t *testing.T, got0 int, gotErr1 error, gotErr2 error, tt *test) error {
 		if !reflect.DeepEqual(got0, tt.want.want0) {
@@ -36,48 +36,29 @@ func TestMultiError(t *testing.T) {
 		}
 		return nil
 	}
+	defaultInit := func(t *testing.T, tt *test) {}
+	defaultCleanup := func(t *testing.T, tt *test) {}
 	tests := []test{
-		{
-			name: "Negative input",
-			args: args{n: -1},
-			want: wants{
-				want0:    0,
-				wantErr1: fmt.Errorf("negative"),
-			},
-		},
-		{
-			name: "Too large input",
-			args: args{n: 101},
-			want: wants{
-				want0:    0,
-				wantErr2: fmt.Errorf("too large"),
-			},
-		},
-		{
-			name: "Normal input",
-			args: args{n: 10},
-			want: wants{
-				want0: 10,
-			},
-		},
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if tt.Init != nil {
-				tt.Init(t, &tt)
+			if tt.init == nil {
+				tt.init = defaultInit
 			}
-			if tt.Cleanup != nil {
-				defer tt.Cleanup(t, &tt)
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
 			}
+			defer tt.cleanup(t, &tt)
 			got0, err1, err2 := MultiError(
 				tt.args.n,
 			)
-			validation := defaultValidate
-			if tt.Validate != nil {
-				validation = tt.Validate
+			if tt.validate == nil {
+				tt.validate = defaultValidate
 			}
-			if err := validation(t, got0, err1, err2, &tt); err != nil {
+			if err := tt.validate(t, got0, err1, err2, &tt); err != nil {
 				t.Errorf("MultiError() validation failed: %v", err)
 			}
 		})

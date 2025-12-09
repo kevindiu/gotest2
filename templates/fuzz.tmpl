@@ -1,14 +1,22 @@
 {{define "fuzz"}}
-{{- if and .Fuzz (not .Receiver) }}
+{{- if and .Fuzz .Parameters (not .Receiver) }}
     {{- $allParamsFuzzable := true }}
     {{- range .Parameters }}
-        {{- if not (isFuzzable .Type) }}
+        {{- if not (isFuzzable .Type $.TypeParams) }}
             {{- $allParamsFuzzable = false }}
         {{- end }}
     {{- end }}
     
     {{- if $allParamsFuzzable }}
-func Fuzz{{.Name}}(f *testing.F) {
+{{- $fuzzTargetName := .Name }}
+{{- if not .IsExported }}
+    {{- $fuzzTargetName = printf "_%s" .Name }}
+{{- end }}
+func Fuzz{{$fuzzTargetName}}(f *testing.F) {
+    {{- range .TypeParams}}
+    // TODO: Initialize concrete type for {{.Name}}
+    type {{.Name}} = int
+    {{- end}}
     // TODO: Add seed corpus
     f.Fuzz(func(t *testing.T, {{range $i, $p := .Parameters}}{{if $i}}, {{end}}{{$p.Name}} {{$p.Type}}{{end}}) {
         {{- if .Results }}

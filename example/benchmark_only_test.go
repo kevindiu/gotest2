@@ -2,16 +2,18 @@ package main
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 )
 
-func TestParseConfig(t *testing.T) {
+func TestMultiply(t *testing.T) {
 	t.Parallel()
 	type args struct {
-		data []byte
+		a int
+		b int
 	}
 	type wants struct {
-		wantErr error
+		want0 int
 	}
 	type test struct {
 		name     string
@@ -19,11 +21,11 @@ func TestParseConfig(t *testing.T) {
 		want     wants
 		init     func(t *testing.T, tt *test)
 		cleanup  func(t *testing.T, tt *test)
-		validate func(t *testing.T, gotErr error, tt *test) error
+		validate func(t *testing.T, got0 int, tt *test) error
 	}
-	defaultValidate := func(t *testing.T, gotErr error, tt *test) error {
-		if fmt.Sprint(gotErr) != fmt.Sprint(tt.want.wantErr) {
-			return fmt.Errorf("ParseConfig() error = %v, wantErr %v", gotErr, tt.want.wantErr)
+	defaultValidate := func(t *testing.T, got0 int, tt *test) error {
+		if !reflect.DeepEqual(got0, tt.want.want0) {
+			return fmt.Errorf("Multiply() got0 = %v, want %v", got0, tt.want.want0)
 		}
 		return nil
 	}
@@ -43,14 +45,15 @@ func TestParseConfig(t *testing.T) {
 				tt.cleanup = defaultCleanup
 			}
 			defer tt.cleanup(t, &tt)
-			err := ParseConfig(
-				tt.args.data,
+			got0 := Multiply(
+				tt.args.a,
+				tt.args.b,
 			)
 			if tt.validate == nil {
 				tt.validate = defaultValidate
 			}
-			if err := tt.validate(t, err, &tt); err != nil {
-				t.Errorf("ParseConfig() validation failed: %v", err)
+			if err := tt.validate(t, got0, &tt); err != nil {
+				t.Errorf("Multiply() validation failed: %v", err)
 			}
 		})
 	}

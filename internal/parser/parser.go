@@ -38,7 +38,7 @@ func Parse(patterns []string) ([]*models.FileResult, error) {
 			obj := scope.Lookup(name)
 
 			// Helper to add matching function to the map
-			addFunc := func(path string, fn *models.FunctionInfo) {
+			addFunc := func(path string, fn *models.FunctionInfo, importsMap map[string]struct{}) {
 				if _, ok := resultMap[path]; !ok {
 					resultMap[path] = &models.FileResult{
 						Path:        path,
@@ -47,6 +47,24 @@ func Parse(patterns []string) ([]*models.FileResult, error) {
 					}
 				}
 				resultMap[path].Functions = append(resultMap[path].Functions, fn)
+				// Merge imports
+				for imp := range importsMap {
+					// Check if already present to avoid duplicates (O(N) simple check for now, or use map in FileResult initially?)
+					// FileResult currently has []string.
+					// Let's assume we can just append and verify uniqueness later or use a helper?
+					// Simpler: iterate existing imports? Or convert FileResult.Imports to a map temporarily?
+					// Since we are building FileResult incrementally, we can check.
+					found := false
+					for _, existing := range resultMap[path].Imports {
+						if existing == imp {
+							found = true
+							break
+						}
+					}
+					if !found {
+						resultMap[path].Imports = append(resultMap[path].Imports, imp)
+					}
+				}
 			}
 
 			if funcObj, ok := obj.(*types.Func); ok {
@@ -56,9 +74,10 @@ func Parse(patterns []string) ([]*models.FileResult, error) {
 				// and not in a test file (sanity check, usually filtered by Tests: false logic but safe to keep)
 				if !strings.HasSuffix(pos.Filename, "_test.go") {
 					funcs := []*models.FunctionInfo{}
-					processFunction(funcObj, &funcs)
+					importsMap := make(map[string]struct{})
+					processFunction(funcObj, &funcs, importsMap)
 					if len(funcs) > 0 {
-						addFunc(pos.Filename, funcs[0])
+						addFunc(pos.Filename, funcs[0], importsMap)
 					}
 				}
 			}
@@ -71,9 +90,10 @@ func Parse(patterns []string) ([]*models.FileResult, error) {
 						pos := pkg.Fset.Position(method.Pos())
 						if !strings.HasSuffix(pos.Filename, "_test.go") {
 							funcs := []*models.FunctionInfo{}
-							processFunction(method, &funcs)
+							importsMap := make(map[string]struct{})
+							processFunction(method, &funcs, importsMap)
 							if len(funcs) > 0 {
-								addFunc(pos.Filename, funcs[0])
+								addFunc(pos.Filename, funcs[0], importsMap)
 							}
 						}
 					}
@@ -91,7 +111,7 @@ func Parse(patterns []string) ([]*models.FileResult, error) {
 	return results, nil
 }
 
-func processFunction(funcObj *types.Func, funcs *[]*models.FunctionInfo) {
+func processFunction(funcObj *types.Func, funcs *[]*models.FunctionInfo, importsMap map[string]struct{}) {
 	sig, ok := funcObj.Type().(*types.Signature)
 	if !ok {
 		return
@@ -102,20 +122,41 @@ func processFunction(funcObj *types.Func, funcs *[]*models.FunctionInfo) {
 		IsExported: funcObj.Exported(),
 	}
 
-	// Type Constraints (Generics)
+	// Custom qualifier to ensure we get short package names
+	qualifier := func(other *types.Package) string {
+		if other == funcObj.Pkg() {
+			return ""
+		}
+		// Capture import
+		importsMap[other.Path()] = struct{}{}
+
+		name := other.Name()
+		if idx := strings.LastIndex(name, "/"); idx != -1 {
+			name = name[idx+1:]
+		}
+		return name
+	}
+
+	extractTypeParams(sig, info, qualifier)
+	extractReceiver(sig, info, qualifier)
+	extractParams(sig, info, qualifier)
+	extractResults(sig, info, qualifier)
+
+	*funcs = append(*funcs, info)
+}
+
+func extractTypeParams(sig *types.Signature, info *models.FunctionInfo, qualifier types.Qualifier) {
 	if tparams := sig.TypeParams(); tparams != nil && tparams.Len() > 0 {
 		for i := 0; i < tparams.Len(); i++ {
 			tp := tparams.At(i)
-			// simplified type representation
 			info.TypeParams = append(info.TypeParams, &models.Field{
 				Name:  tp.Obj().Name(),
-				Type:  tp.Constraint().String(),
+				Type:  types.TypeString(tp.Constraint(), qualifier),
 				Index: i,
 			})
 		}
 	} else if recv := sig.Recv(); recv != nil {
 		// Check if receiver has type params (e.g. method on generic type)
-		// Receiver type might be *Named or Named
 		var named *types.Named
 		t := recv.Type()
 		if ptr, ok := t.(*types.Pointer); ok {
@@ -131,37 +172,25 @@ func processFunction(funcObj *types.Func, funcs *[]*models.FunctionInfo) {
 					tp := tparams.At(i)
 					info.TypeParams = append(info.TypeParams, &models.Field{
 						Name:  tp.Obj().Name(),
-						Type:  tp.Constraint().String(),
+						Type:  types.TypeString(tp.Constraint(), qualifier),
 						Index: i,
 					})
 				}
 			}
 		}
 	}
+}
 
-	// Custom qualifier to ensure we get short package names (e.g. "models" instead of "github.com/.../models")
-	// This allows goimports to resolve the import path later.
-	qualifier := func(other *types.Package) string {
-		if other == funcObj.Pkg() {
-			return ""
-		}
-		// Paranoid check: ensure name doesn't contain slashes
-		name := other.Name()
-		if idx := strings.LastIndex(name, "/"); idx != -1 {
-			name = name[idx+1:]
-		}
-		return name
-	}
-
-	// Receiver
+func extractReceiver(sig *types.Signature, info *models.FunctionInfo, qualifier types.Qualifier) {
 	if recv := sig.Recv(); recv != nil {
 		info.Receiver = &models.Receiver{
 			Name: recv.Name(),
 			Type: types.TypeString(recv.Type(), qualifier),
 		}
 	}
+}
 
-	// Params
+func extractParams(sig *types.Signature, info *models.FunctionInfo, qualifier types.Qualifier) {
 	params := sig.Params()
 	for i := 0; i < params.Len(); i++ {
 		p := params.At(i)
@@ -173,8 +202,9 @@ func processFunction(funcObj *types.Func, funcs *[]*models.FunctionInfo) {
 			IsVariadic: isVariadic,
 		})
 	}
+}
 
-	// Results
+func extractResults(sig *types.Signature, info *models.FunctionInfo, qualifier types.Qualifier) {
 	results := sig.Results()
 	for i := 0; i < results.Len(); i++ {
 		r := results.At(i)
@@ -184,8 +214,6 @@ func processFunction(funcObj *types.Func, funcs *[]*models.FunctionInfo) {
 			Index: i,
 		})
 	}
-
-	*funcs = append(*funcs, info)
 }
 
 // ParseTests parses a test file and returns a map of test function names to their source code.

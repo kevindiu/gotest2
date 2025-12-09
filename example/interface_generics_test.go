@@ -10,12 +10,8 @@ func TestBox_Get(t *testing.T) {
 	t.Parallel()
 	// TODO: Add test cases.
 	t.Run("int", func(t *testing.T) {
-		runTestBox_Get[int](t, []testBox_GetTestCase[int]{
-			{
-				name:     "Get int",
-				receiver: &Box[int]{val: 42},
-				want:     testBox_GetWants[int]{want0: 42},
-			},
+		testBox_Get[int](t, []testCaseBox_Get[int]{
+			// TODO: Add test cases.
 		})
 	})
 }
@@ -24,20 +20,8 @@ func TestBox_Put(t *testing.T) {
 	t.Parallel()
 	// TODO: Add test cases.
 	t.Run("int", func(t *testing.T) {
-		runTestBox_Put[int](t, []testBox_PutTestCase[int]{
-			{
-				name:     "Put int",
-				receiver: &Box[int]{},
-				args: struct {
-					v int
-				}{v: 100},
-				Validate: func(t *testing.T, tt *testBox_PutTestCase[int]) error {
-					if tt.receiver.val != 100 {
-						return fmt.Errorf("expected 100, got %d", tt.receiver.val)
-					}
-					return nil
-				},
-			},
+		testBox_Put[int](t, []testCaseBox_Put[int]{
+			// TODO: Add test cases.
 		})
 	})
 }
@@ -46,116 +30,105 @@ func TestProcessContainer(t *testing.T) {
 	t.Parallel()
 	// TODO: Add test cases.
 	t.Run("int", func(t *testing.T) {
-		runTestProcessContainer[int](t, []testProcessContainerTestCase[int]{
-			{
-				name: "Process Box",
-				args: struct {
-					c   Container[int]
-					val int
-				}{
-					c:   &Box[int]{},
-					val: 55,
-				},
-				Validate: func(t *testing.T, tt *testProcessContainerTestCase[int]) error {
-					b, ok := tt.args.c.(*Box[int])
-					if !ok {
-						return fmt.Errorf("expected Box[int]")
-					}
-					if b.val != 55 {
-						return fmt.Errorf("expected 55, got %d", b.val)
-					}
-					return nil
-				},
-			},
+		testProcessContainer[int](t, []testCaseProcessContainer[int]{
+			// TODO: Add test cases.
 		})
 	})
 }
 
-func runTestBox_Get[T any](t *testing.T, cases []testBox_GetTestCase[T]) {
+func testBox_Get[T any](t *testing.T, cases []testCaseBox_Get[T]) {
 	t.Parallel()
-
 	for _, tt := range cases {
-		defaultValidate := func(t *testing.T, got0 T, tt *testBox_GetTestCase[T]) error {
+		defaultValidate := func(t *testing.T, got0 T, tt *testCaseBox_Get[T]) error {
 			if !reflect.DeepEqual(got0, tt.want.want0) {
 				return fmt.Errorf("Box_Get() got0 = %v, want %v", got0, tt.want.want0)
 			}
 			return nil
 		}
+		defaultInit := func(t *testing.T, tt *testCaseBox_Get[T]) {}
+		defaultCleanup := func(t *testing.T, tt *testCaseBox_Get[T]) {}
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if tt.Init != nil {
-				tt.Init(t, &tt)
+			if tt.init == nil {
+				tt.init = defaultInit
 			}
-			if tt.Cleanup != nil {
-				defer tt.Cleanup(t, &tt)
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
 			}
+			defer tt.cleanup(t, &tt)
 			got0 := tt.receiver.Get()
-			validation := defaultValidate
-			if tt.Validate != nil {
-				validation = tt.Validate
+			if tt.validate == nil {
+				tt.validate = defaultValidate
 			}
-			if err := validation(t, got0, &tt); err != nil {
+			if err := tt.validate(t, got0, &tt); err != nil {
 				t.Errorf("Box_Get() validation failed: %v", err)
 			}
 		})
 	}
 }
 
-func runTestBox_Put[T any](t *testing.T, cases []testBox_PutTestCase[T]) {
+func testBox_Put[T any](t *testing.T, cases []testCaseBox_Put[T]) {
 	t.Parallel()
-
 	for _, tt := range cases {
-		defaultValidate := func(t *testing.T, tt *testBox_PutTestCase[T]) error {
+
+		defaultValidate := func(t *testing.T, tt *testCaseBox_Put[T]) error {
 			return nil
 		}
+		defaultInit := func(t *testing.T, tt *testCaseBox_Put[T]) {}
+		defaultCleanup := func(t *testing.T, tt *testCaseBox_Put[T]) {}
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if tt.Init != nil {
-				tt.Init(t, &tt)
+			if tt.init == nil {
+				tt.init = defaultInit
 			}
-			if tt.Cleanup != nil {
-				defer tt.Cleanup(t, &tt)
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
 			}
+			defer tt.cleanup(t, &tt)
 			tt.receiver.Put(
 				tt.args.v,
 			)
 
-			validation := defaultValidate
-			if tt.Validate != nil {
-				validation = tt.Validate
+			if tt.validate == nil {
+				tt.validate = defaultValidate
 			}
-			if err := validation(t, &tt); err != nil {
+			if err := tt.validate(t, &tt); err != nil {
 				t.Errorf("Box_Put() validation failed: %v", err)
 			}
 		})
 	}
 }
 
-func runTestProcessContainer[T any](t *testing.T, cases []testProcessContainerTestCase[T]) {
+func testProcessContainer[T any](t *testing.T, cases []testCaseProcessContainer[T]) {
 	t.Parallel()
-
 	for _, tt := range cases {
-		defaultValidate := func(t *testing.T, tt *testProcessContainerTestCase[T]) error {
+
+		defaultValidate := func(t *testing.T, tt *testCaseProcessContainer[T]) error {
 			return nil
 		}
+		defaultInit := func(t *testing.T, tt *testCaseProcessContainer[T]) {}
+		defaultCleanup := func(t *testing.T, tt *testCaseProcessContainer[T]) {}
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if tt.Init != nil {
-				tt.Init(t, &tt)
+			if tt.init == nil {
+				tt.init = defaultInit
 			}
-			if tt.Cleanup != nil {
-				defer tt.Cleanup(t, &tt)
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
 			}
+			defer tt.cleanup(t, &tt)
 			ProcessContainer(
 				tt.args.c,
 				tt.args.val,
 			)
 
-			validation := defaultValidate
-			if tt.Validate != nil {
-				validation = tt.Validate
+			if tt.validate == nil {
+				tt.validate = defaultValidate
 			}
-			if err := validation(t, &tt); err != nil {
+			if err := tt.validate(t, &tt); err != nil {
 				t.Errorf("ProcessContainer() validation failed: %v", err)
 			}
 		})
@@ -166,35 +139,35 @@ type testBox_GetWants[T any] struct {
 	want0 T
 }
 
-type testBox_GetTestCase[T any] struct {
+type testCaseBox_Get[T any] struct {
 	name     string
 	receiver *Box[T]
 	args     struct {
 	}
 	want     testBox_GetWants[T]
-	Init     func(t *testing.T, tt *testBox_GetTestCase[T])
-	Cleanup  func(t *testing.T, tt *testBox_GetTestCase[T])
-	Validate func(t *testing.T, got0 T, tt *testBox_GetTestCase[T]) error
+	init     func(t *testing.T, tt *testCaseBox_Get[T])
+	cleanup  func(t *testing.T, tt *testCaseBox_Get[T])
+	validate func(t *testing.T, got0 T, tt *testCaseBox_Get[T]) error
 }
 
-type testBox_PutTestCase[T any] struct {
+type testCaseBox_Put[T any] struct {
 	name     string
 	receiver *Box[T]
 	args     struct {
 		v T
 	}
-	Init     func(t *testing.T, tt *testBox_PutTestCase[T])
-	Cleanup  func(t *testing.T, tt *testBox_PutTestCase[T])
-	Validate func(t *testing.T, tt *testBox_PutTestCase[T]) error
+	init     func(t *testing.T, tt *testCaseBox_Put[T])
+	cleanup  func(t *testing.T, tt *testCaseBox_Put[T])
+	validate func(t *testing.T, tt *testCaseBox_Put[T]) error
 }
 
-type testProcessContainerTestCase[T any] struct {
+type testCaseProcessContainer[T any] struct {
 	name string
 	args struct {
 		c   Container[T]
 		val T
 	}
-	Init     func(t *testing.T, tt *testProcessContainerTestCase[T])
-	Cleanup  func(t *testing.T, tt *testProcessContainerTestCase[T])
-	Validate func(t *testing.T, tt *testProcessContainerTestCase[T]) error
+	init     func(t *testing.T, tt *testCaseProcessContainer[T])
+	cleanup  func(t *testing.T, tt *testCaseProcessContainer[T])
+	validate func(t *testing.T, tt *testCaseProcessContainer[T]) error
 }

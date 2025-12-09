@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -11,84 +10,16 @@ func TestGenericMultiError(t *testing.T) {
 	t.Parallel()
 	// TODO: Add test cases.
 	t.Run("int", func(t *testing.T) {
-		runTestGenericMultiError[int](t, []testGenericMultiErrorTestCase[int]{
-			{
-				name: "Negative input",
-				args: struct {
-					val int
-					n   int
-				}{val: 10, n: -1},
-				want: testGenericMultiErrorWants[int]{
-					want0:    10,
-					wantErr1: errors.New("negative"),
-				},
-			},
-			{
-				name: "Too large input",
-				args: struct {
-					val int
-					n   int
-				}{val: 10, n: 101},
-				want: testGenericMultiErrorWants[int]{
-					want0:    0,
-					wantErr2: errors.New("too large"),
-				},
-			},
-			{
-				name: "Normal input",
-				args: struct {
-					val int
-					n   int
-				}{val: 42, n: 50},
-				want: testGenericMultiErrorWants[int]{
-					want0: 42,
-				},
-			},
-		})
-	})
-	t.Run("string", func(t *testing.T) {
-		runTestGenericMultiError[string](t, []testGenericMultiErrorTestCase[string]{
-			{
-				name: "Negative input string",
-				args: struct {
-					val string
-					n   int
-				}{val: "foo", n: -1},
-				want: testGenericMultiErrorWants[string]{
-					want0:    "foo",
-					wantErr1: errors.New("negative"),
-				},
-			},
-			{
-				name: "Too large input string",
-				args: struct {
-					val string
-					n   int
-				}{val: "foo", n: 101},
-				want: testGenericMultiErrorWants[string]{
-					want0:    "",
-					wantErr2: errors.New("too large"),
-				},
-			},
-			{
-				name: "Normal input string",
-				args: struct {
-					val string
-					n   int
-				}{val: "success", n: 50},
-				want: testGenericMultiErrorWants[string]{
-					want0: "success",
-				},
-			},
+		testGenericMultiError[int](t, []testCaseGenericMultiError[int]{
+			// TODO: Add test cases.
 		})
 	})
 }
 
-func runTestGenericMultiError[T any](t *testing.T, cases []testGenericMultiErrorTestCase[T]) {
+func testGenericMultiError[T any](t *testing.T, cases []testCaseGenericMultiError[T]) {
 	t.Parallel()
-
 	for _, tt := range cases {
-		defaultValidate := func(t *testing.T, got0 T, gotErr1 error, gotErr2 error, tt *testGenericMultiErrorTestCase[T]) error {
+		defaultValidate := func(t *testing.T, got0 T, gotErr1 error, gotErr2 error, tt *testCaseGenericMultiError[T]) error {
 			if !reflect.DeepEqual(got0, tt.want.want0) {
 				return fmt.Errorf("GenericMultiError() got0 = %v, want %v", got0, tt.want.want0)
 			}
@@ -100,23 +31,26 @@ func runTestGenericMultiError[T any](t *testing.T, cases []testGenericMultiError
 			}
 			return nil
 		}
+		defaultInit := func(t *testing.T, tt *testCaseGenericMultiError[T]) {}
+		defaultCleanup := func(t *testing.T, tt *testCaseGenericMultiError[T]) {}
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if tt.Init != nil {
-				tt.Init(t, &tt)
+			if tt.init == nil {
+				tt.init = defaultInit
 			}
-			if tt.Cleanup != nil {
-				defer tt.Cleanup(t, &tt)
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
 			}
+			defer tt.cleanup(t, &tt)
 			got0, err1, err2 := GenericMultiError(
 				tt.args.val,
 				tt.args.n,
 			)
-			validation := defaultValidate
-			if tt.Validate != nil {
-				validation = tt.Validate
+			if tt.validate == nil {
+				tt.validate = defaultValidate
 			}
-			if err := validation(t, got0, err1, err2, &tt); err != nil {
+			if err := tt.validate(t, got0, err1, err2, &tt); err != nil {
 				t.Errorf("GenericMultiError() validation failed: %v", err)
 			}
 		})
@@ -129,14 +63,14 @@ type testGenericMultiErrorWants[T any] struct {
 	wantErr2 error
 }
 
-type testGenericMultiErrorTestCase[T any] struct {
+type testCaseGenericMultiError[T any] struct {
 	name string
 	args struct {
 		val T
 		n   int
 	}
 	want     testGenericMultiErrorWants[T]
-	Init     func(t *testing.T, tt *testGenericMultiErrorTestCase[T])
-	Cleanup  func(t *testing.T, tt *testGenericMultiErrorTestCase[T])
-	Validate func(t *testing.T, got0 T, gotErr1 error, gotErr2 error, tt *testGenericMultiErrorTestCase[T]) error
+	init     func(t *testing.T, tt *testCaseGenericMultiError[T])
+	cleanup  func(t *testing.T, tt *testCaseGenericMultiError[T])
+	validate func(t *testing.T, got0 T, gotErr1 error, gotErr2 error, tt *testCaseGenericMultiError[T]) error
 }

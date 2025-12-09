@@ -1,0 +1,5 @@
+{{template "header.tmpl" .}}
+
+{{range .Funcs}}
+    {{template "fuzz" .}}
+{{end}}

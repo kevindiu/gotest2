@@ -1,14 +1,15 @@
-package main
+package app
 
 import (
 	"fmt"
 	"testing"
 )
 
-func TestParseConfig(t *testing.T) {
+func TestRun(t *testing.T) {
 	t.Parallel()
 	type args struct {
-		data []byte
+		patterns []string
+		cfg      Config
 	}
 	type wants struct {
 		wantErr error
@@ -23,7 +24,7 @@ func TestParseConfig(t *testing.T) {
 	}
 	defaultValidate := func(t *testing.T, gotErr error, tt *test) error {
 		if fmt.Sprint(gotErr) != fmt.Sprint(tt.want.wantErr) {
-			return fmt.Errorf("ParseConfig() error = %v, wantErr %v", gotErr, tt.want.wantErr)
+			return fmt.Errorf("Run() error = %v, wantErr %v", gotErr, tt.want.wantErr)
 		}
 		return nil
 	}
@@ -43,14 +44,15 @@ func TestParseConfig(t *testing.T) {
 				tt.cleanup = defaultCleanup
 			}
 			defer tt.cleanup(t, &tt)
-			err := ParseConfig(
-				tt.args.data,
+			err := Run(
+				tt.args.patterns,
+				tt.args.cfg,
 			)
 			if tt.validate == nil {
 				tt.validate = defaultValidate
 			}
 			if err := tt.validate(t, err, &tt); err != nil {
-				t.Errorf("ParseConfig() validation failed: %v", err)
+				t.Errorf("Run() validation failed: %v", err)
 			}
 		})
 	}

@@ -1,30 +1,23 @@
 package main
 
 import (
-	"fmt"
 	"testing"
+	"time"
 )
 
-func TestParseConfig(t *testing.T) {
+func TestSlowFunction(t *testing.T) {
 	t.Parallel()
 	type args struct {
-		data []byte
-	}
-	type wants struct {
-		wantErr error
+		d time.Duration
 	}
 	type test struct {
 		name     string
 		args     args
-		want     wants
 		init     func(t *testing.T, tt *test)
 		cleanup  func(t *testing.T, tt *test)
-		validate func(t *testing.T, gotErr error, tt *test) error
+		validate func(t *testing.T, tt *test) error
 	}
-	defaultValidate := func(t *testing.T, gotErr error, tt *test) error {
-		if fmt.Sprint(gotErr) != fmt.Sprint(tt.want.wantErr) {
-			return fmt.Errorf("ParseConfig() error = %v, wantErr %v", gotErr, tt.want.wantErr)
-		}
+	defaultValidate := func(t *testing.T, tt *test) error {
 		return nil
 	}
 	defaultInit := func(t *testing.T, tt *test) {}
@@ -43,14 +36,14 @@ func TestParseConfig(t *testing.T) {
 				tt.cleanup = defaultCleanup
 			}
 			defer tt.cleanup(t, &tt)
-			err := ParseConfig(
-				tt.args.data,
+			SlowFunction(
+				tt.args.d,
 			)
 			if tt.validate == nil {
 				tt.validate = defaultValidate
 			}
-			if err := tt.validate(t, err, &tt); err != nil {
-				t.Errorf("ParseConfig() validation failed: %v", err)
+			if err := tt.validate(t, &tt); err != nil {
+				t.Errorf("SlowFunction() validation failed: %v", err)
 			}
 		})
 	}
