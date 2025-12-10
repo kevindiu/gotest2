@@ -49,7 +49,7 @@ func testGenericAdd[T constraints.Ordered](t *testing.T, cases []testCaseGeneric
 				tt.cleanup = defaultCleanup
 			}
 			defer tt.cleanup(t, &tt)
-			got0 := GenericAdd(
+			got0 := GenericAdd[T](
 				tt.args.a,
 				tt.args.b,
 			)
@@ -84,7 +84,7 @@ func testGenericAppend[T any](t *testing.T, cases []testCaseGenericAppend[T]) {
 				tt.cleanup = defaultCleanup
 			}
 			defer tt.cleanup(t, &tt)
-			got0 := GenericAppend(
+			got0 := GenericAppend[T](
 				tt.args.s,
 				tt.args.v,
 			)

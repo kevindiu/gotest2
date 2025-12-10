@@ -120,7 +120,7 @@ func testProcessContainer[T any](t *testing.T, cases []testCaseProcessContainer[
 				tt.cleanup = defaultCleanup
 			}
 			defer tt.cleanup(t, &tt)
-			ProcessContainer(
+			ProcessContainer[T](
 				tt.args.c,
 				tt.args.val,
 			)

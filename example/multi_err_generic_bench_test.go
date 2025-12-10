@@ -27,7 +27,7 @@ func benchmarkGenericMultiError[T any](b *testing.B, tests []testCaseBenchmarkGe
 			defer bb.cleanup(b, &bb)
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				GenericMultiError(
+				GenericMultiError[T](
 					bb.args.val,
 					bb.args.n,
 				)

@@ -37,7 +37,7 @@ func benchmarkGenericAdd[T constraints.Ordered](b *testing.B, tests []testCaseBe
 			defer bb.cleanup(b, &bb)
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				GenericAdd(
+				GenericAdd[T](
 					bb.args.a,
 					bb.args.b,
 				)
@@ -61,7 +61,7 @@ func benchmarkGenericAppend[T any](b *testing.B, tests []testCaseBenchmarkGeneri
 			defer bb.cleanup(b, &bb)
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				GenericAppend(
+				GenericAppend[T](
 					bb.args.s,
 					bb.args.v,
 				)

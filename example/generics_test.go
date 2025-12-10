@@ -67,7 +67,7 @@ func testGenericSum[T int | float64](t *testing.T, cases []testCaseGenericSum[T]
 				tt.cleanup = defaultCleanup
 			}
 			defer tt.cleanup(t, &tt)
-			got0 := GenericSum(
+			got0 := GenericSum[T](
 				tt.args.a,
 				tt.args.b,
 			)
@@ -172,7 +172,7 @@ func testSwap[T any](t *testing.T, cases []testCaseSwap[T]) {
 				tt.cleanup = defaultCleanup
 			}
 			defer tt.cleanup(t, &tt)
-			got0, got1 := Swap(
+			got0, got1 := Swap[T](
 				tt.args.a,
 				tt.args.b,
 			)

@@ -7,6 +7,7 @@ import (
 	"go/token"
 	"go/types"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/kevindiu/gotest2/internal/models"
@@ -21,11 +22,46 @@ func Parse(patterns []string) ([]*models.FileResult, error) {
 		Tests: false,
 	}
 
-	pkgs, err := packages.Load(cfg, patterns...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load packages: %v", err)
+	var pkgPatterns []string
+	filePatternsByDir := make(map[string][]string)
+
+	for _, p := range patterns {
+		// Simple heuristic: if it ends in .go, treat as file.
+		// Otherwise treat as package pattern.
+		if strings.HasSuffix(p, ".go") {
+			abs, err := filepath.Abs(p)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get abs path for %s: %v", p, err)
+			}
+			dir := filepath.Dir(abs)
+			filePatternsByDir[dir] = append(filePatternsByDir[dir], p)
+		} else {
+			pkgPatterns = append(pkgPatterns, p)
+		}
 	}
+
+	var pkgs []*packages.Package
+
+	// 1. Load generic package patterns (directories, ./...)
+	if len(pkgPatterns) > 0 {
+		p, err := packages.Load(cfg, pkgPatterns...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load packages: %v", err)
+		}
+		pkgs = append(pkgs, p...)
+	}
+
+	// 2. Load file patterns, grouped by directory
+	for _, files := range filePatternsByDir {
+		p, err := packages.Load(cfg, files...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load file packages: %v", err)
+		}
+		pkgs = append(pkgs, p...)
+	}
+
 	if packages.PrintErrors(pkgs) > 0 {
+
 		return nil, fmt.Errorf("package load contained errors")
 	}
 
@@ -49,11 +85,7 @@ func Parse(patterns []string) ([]*models.FileResult, error) {
 				resultMap[path].Functions = append(resultMap[path].Functions, fn)
 				// Merge imports
 				for imp := range importsMap {
-					// Check if already present to avoid duplicates (O(N) simple check for now, or use map in FileResult initially?)
-					// FileResult currently has []string.
-					// Let's assume we can just append and verify uniqueness later or use a helper?
-					// Simpler: iterate existing imports? Or convert FileResult.Imports to a map temporarily?
-					// Since we are building FileResult incrementally, we can check.
+					// Avoid duplicates
 					found := false
 					for _, existing := range resultMap[path].Imports {
 						if existing == imp {
@@ -71,7 +103,7 @@ func Parse(patterns []string) ([]*models.FileResult, error) {
 				// Top-level function
 				pos := pkg.Fset.Position(funcObj.Pos())
 				// Only include if it's in the loaded package (not imported)
-				// and not in a test file (sanity check, usually filtered by Tests: false logic but safe to keep)
+				// and not in a test file
 				if !strings.HasSuffix(pos.Filename, "_test.go") {
 					funcs := []*models.FunctionInfo{}
 					importsMap := make(map[string]struct{})

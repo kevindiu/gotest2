@@ -87,7 +87,7 @@ func benchmarkProcessContainer[T any](b *testing.B, tests []testCaseBenchmarkPro
 			defer bb.cleanup(b, &bb)
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				ProcessContainer(
+				ProcessContainer[T](
 					bb.args.c,
 					bb.args.val,
 				)

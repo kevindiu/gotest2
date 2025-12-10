@@ -51,7 +51,7 @@ func benchmarkGenericSum[T int | float64](b *testing.B, tests []testCaseBenchmar
 			defer bb.cleanup(b, &bb)
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				GenericSum(
+				GenericSum[T](
 					bb.args.a,
 					bb.args.b,
 				)
@@ -121,7 +121,7 @@ func benchmarkSwap[T any](b *testing.B, tests []testCaseBenchmarkSwap[T]) {
 			defer bb.cleanup(b, &bb)
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				Swap(
+				Swap[T](
 					bb.args.a,
 					bb.args.b,
 				)

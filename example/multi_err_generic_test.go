@@ -43,7 +43,7 @@ func testGenericMultiError[T any](t *testing.T, cases []testCaseGenericMultiErro
 				tt.cleanup = defaultCleanup
 			}
 			defer tt.cleanup(t, &tt)
-			got0, err1, err2 := GenericMultiError(
+			got0, err1, err2 := GenericMultiError[T](
 				tt.args.val,
 				tt.args.n,
 			)

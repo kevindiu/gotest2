@@ -1,0 +1,33 @@
+package main
+
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/kevindiu/gotest2/example/handler"
+	"github.com/kevindiu/gotest2/example/model"
+	"github.com/kevindiu/gotest2/example/repository"
+	"github.com/kevindiu/gotest2/example/service"
+)
+
+func main() {
+	// 1. Init Repository
+	repo := repository.NewMemoryRepository[model.Book, string]()
+
+	// 2. Init Service
+	svc := service.NewBookService(repo)
+
+	// 3. Init Handler
+	h := handler.NewBookHandler(svc)
+
+	// 4. Register Routes
+	http.HandleFunc("/book/create", h.CreateBookHandler)
+	http.HandleFunc("/book/get", h.GetBookHandler)
+	http.HandleFunc("/book/list", h.ListBooksHandler)
+
+	// 5. Start Server
+	fmt.Println("Starting server on :8080...")
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		panic(err)
+	}
+}
