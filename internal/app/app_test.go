@@ -2,6 +2,8 @@ package app
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -31,7 +33,36 @@ func TestRun(t *testing.T) {
 	defaultInit := func(t *testing.T, tt *test) {}
 	defaultCleanup := func(t *testing.T, tt *test) {}
 	tests := []test{
-		// TODO: Add test cases.
+		{
+			name: "run simple",
+			init: func(t *testing.T, tt *test) {
+				tmpDir := t.TempDir()
+				code := `package main
+func Foo() {}
+`
+				srcPath := filepath.Join(tmpDir, "main.go")
+				if err := os.WriteFile(srcPath, []byte(code), 0644); err != nil {
+					t.Fatal(err)
+				}
+				tt.args.patterns = []string{srcPath}
+				tt.args.cfg = Config{
+					Tests: true,
+				}
+			},
+			validate: func(t *testing.T, gotErr error, tt *test) error {
+				if gotErr != nil {
+					return gotErr
+				}
+				// Check that main_test.go exists
+				srcPath := tt.args.patterns[0]
+				base := srcPath[:len(srcPath)-3]
+				testPath := base + "_test.go"
+				if _, err := os.Stat(testPath); os.IsNotExist(err) {
+					return fmt.Errorf("test file %s not created", testPath)
+				}
+				return nil
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

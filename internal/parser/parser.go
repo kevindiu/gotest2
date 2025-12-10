@@ -69,66 +69,62 @@ func Parse(patterns []string) ([]*models.FileResult, error) {
 	resultMap := make(map[string]*models.FileResult)
 
 	for _, pkg := range pkgs {
-		scope := pkg.Types.Scope()
-		for _, name := range scope.Names() {
-			obj := scope.Lookup(name)
+		for _, file := range pkg.Syntax {
+			pos := pkg.Fset.Position(file.Pos())
+			// Skip test files
+			if strings.HasSuffix(pos.Filename, "_test.go") {
+				continue
+			}
 
-			// Helper to add matching function to the map
-			addFunc := func(path string, fn *models.FunctionInfo, importsMap map[string]struct{}) {
-				if _, ok := resultMap[path]; !ok {
-					resultMap[path] = &models.FileResult{
-						Path:        path,
-						PackageName: pkg.Name,
-						Functions:   []*models.FunctionInfo{},
-					}
+			// Capture imports for this file
+			// We can't easily get *exact* used imports per function from AST without more work,
+			// but the previous implementation accumulated imports per function via `qualifier`.
+			// The `processFunction` uses `types.Func`, so we just need to get that from AST.
+
+			for _, decl := range file.Decls {
+				funcDecl, ok := decl.(*ast.FuncDecl)
+				if !ok {
+					continue
 				}
-				resultMap[path].Functions = append(resultMap[path].Functions, fn)
-				// Merge imports
-				for imp := range importsMap {
-					// Avoid duplicates
-					found := false
-					for _, existing := range resultMap[path].Imports {
-						if existing == imp {
-							found = true
-							break
+
+				// Look up the type object
+				obj := pkg.TypesInfo.Defs[funcDecl.Name]
+				funcObj, ok := obj.(*types.Func)
+				if !ok {
+					continue
+				}
+
+				// Helper to add matching function to the map
+				addFunc := func(path string, fn *models.FunctionInfo, importsMap map[string]struct{}) {
+					if _, ok := resultMap[path]; !ok {
+						resultMap[path] = &models.FileResult{
+							Path:        path,
+							PackageName: pkg.Name,
+							Functions:   []*models.FunctionInfo{},
 						}
 					}
-					if !found {
-						resultMap[path].Imports = append(resultMap[path].Imports, imp)
-					}
-				}
-			}
-
-			if funcObj, ok := obj.(*types.Func); ok {
-				// Top-level function
-				pos := pkg.Fset.Position(funcObj.Pos())
-				// Only include if it's in the loaded package (not imported)
-				// and not in a test file
-				if !strings.HasSuffix(pos.Filename, "_test.go") {
-					funcs := []*models.FunctionInfo{}
-					importsMap := make(map[string]struct{})
-					processFunction(funcObj, &funcs, importsMap)
-					if len(funcs) > 0 {
-						addFunc(pos.Filename, funcs[0], importsMap)
-					}
-				}
-			}
-
-			// Methods on Named types
-			if typeNameObj, ok := obj.(*types.TypeName); ok {
-				if named, ok := typeNameObj.Type().(*types.Named); ok {
-					for i := 0; i < named.NumMethods(); i++ {
-						method := named.Method(i)
-						pos := pkg.Fset.Position(method.Pos())
-						if !strings.HasSuffix(pos.Filename, "_test.go") {
-							funcs := []*models.FunctionInfo{}
-							importsMap := make(map[string]struct{})
-							processFunction(method, &funcs, importsMap)
-							if len(funcs) > 0 {
-								addFunc(pos.Filename, funcs[0], importsMap)
+					resultMap[path].Functions = append(resultMap[path].Functions, fn)
+					// Merge imports
+					for imp := range importsMap {
+						// Avoid duplicates
+						found := false
+						for _, existing := range resultMap[path].Imports {
+							if existing == imp {
+								found = true
+								break
 							}
 						}
+						if !found {
+							resultMap[path].Imports = append(resultMap[path].Imports, imp)
+						}
 					}
+				}
+
+				funcs := []*models.FunctionInfo{}
+				importsMap := make(map[string]struct{})
+				processFunction(funcObj, &funcs, importsMap)
+				if len(funcs) > 0 {
+					addFunc(pos.Filename, funcs[0], importsMap)
 				}
 			}
 		}

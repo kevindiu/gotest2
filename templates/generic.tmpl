@@ -12,7 +12,7 @@ func Test{{$testFuncName}}(t *testing.T) {
     {{- end }}
     // TODO: Add test cases.
 	t.Run("int", func(t *testing.T) {
-		test{{$testFuncName}}[int](t, []testCase{{$testFuncName}}[int]{
+		test{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}int{{end}}](t, []testCase{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}int{{end}}]{
             // TODO: Add test cases.
         })
     })
@@ -44,6 +44,10 @@ func test{{$testFuncName}}[{{range .TypeParams}}{{.Name}} {{.Type}}, {{end}}](t 
             {{- $nonErrorResults = add $nonErrorResults 1 }}
         {{- end }}
     {{- end }}
+    {{- $displayFuncName := .Name }}
+    {{- if .Receiver}}
+        {{- $displayFuncName = printf "%s_%s" (receiverName .Receiver.Type) .Name }}
+    {{- end }}
     {{- $hasErr := gt $errorCount 0 }}
     {{- $multipleErrors := gt $errorCount 1 }}
 	for _, tt := range cases {
@@ -54,19 +58,19 @@ func test{{$testFuncName}}[{{range .TypeParams}}{{.Name}} {{.Type}}, {{end}}](t 
                 {{- if ne $r.Type "error" }}
                     {{- if not (isFunc $r.Type) }}
             if !reflect.DeepEqual(got{{$i}}, tt.want.want{{$counter}}) {
-                return fmt.Errorf("{{$testFuncName}}() got{{$i}} = %v, want %v", got{{$i}}, tt.want.want{{$counter}})
+                return fmt.Errorf("{{$displayFuncName}}() got{{$i}} = %v, want %v", got{{$i}}, tt.want.want{{$counter}})
             }
                     {{- end }}
                 {{- $counter = add $counter 1 }}
                 {{- else if $multipleErrors }}
             if fmt.Sprint(gotErr{{$i}}) != fmt.Sprint(tt.want.wantErr{{$i}}) {
-                return fmt.Errorf("{{$testFuncName}}() error{{$i}} = %v, wantErr{{$i}} %v", gotErr{{$i}}, tt.want.wantErr{{$i}})
+                return fmt.Errorf("{{$displayFuncName}}() error{{$i}} = %v, wantErr{{$i}} %v", gotErr{{$i}}, tt.want.wantErr{{$i}})
             }
                 {{- end }}
             {{- end }}
             {{- if and $hasErr (not $multipleErrors) }}
             if fmt.Sprint(gotErr) != fmt.Sprint(tt.want.wantErr) {
-                return fmt.Errorf("{{$testFuncName}}() error = %v, wantErr %v", gotErr, tt.want.wantErr)
+                return fmt.Errorf("{{$displayFuncName}}() error = %v, wantErr %v", gotErr, tt.want.wantErr)
             }
             {{- end}}
             return nil
@@ -87,7 +91,7 @@ func test{{$testFuncName}}[{{range .TypeParams}}{{.Name}} {{.Type}}, {{end}}](t 
             tt.init(t, &tt)
             if tt.cleanup == nil { tt.cleanup = defaultCleanup }
             defer tt.cleanup(t, &tt){{ $resultsLen := len .Results }}{{if eq $resultsLen 0}}
-            {{if .Receiver}}tt.receiver.{{end}}{{.Name}}(
+            {{if .Receiver}}tt.receiver.{{end}}{{.Name}}{{if and (not .Receiver) .TypeParams}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}{{$tp.Name}}{{end}}]{{end}}(
 				{{- range .Parameters}}
 				tt.args.{{.Name}}{{if .IsVariadic}}...{{end}},
 				{{- end}}
@@ -97,7 +101,7 @@ func test{{$testFuncName}}[{{range .TypeParams}}{{.Name}} {{.Type}}, {{end}}](t 
             {{- range $i, $r := .Results -}}
                 {{- if $i}}, {{end}}
                 {{- if eq $r.Type "error"}}{{if $multipleErrors}}err{{$i}}{{else}}err{{end}}{{else}}got{{$i}}{{end}}
-            {{- end}} := {{end}} {{if .Receiver}}tt.receiver.{{end}}{{.Name}}(
+            {{- end}} := {{end}} {{if .Receiver}}tt.receiver.{{end}}{{.Name}}{{if and (not .Receiver) .TypeParams}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}{{$tp.Name}}{{end}}]{{end}}(
 				{{- range .Parameters}}
 				tt.args.{{.Name}}{{if .IsVariadic}}...{{end}},
 				{{- end}}
@@ -105,7 +109,7 @@ func test{{$testFuncName}}[{{range .TypeParams}}{{.Name}} {{.Type}}, {{end}}](t 
             {{- end}}
             if tt.validate == nil { tt.validate = defaultValidate }
             if err := tt.validate(t, {{range $i, $r := .Results}}{{if eq $r.Type "error"}}{{if $multipleErrors}}err{{$i}}{{else}}err{{end}}{{else}}got{{$i}}{{end}}, {{end}}&tt); err != nil {
-                t.Errorf("{{$testFuncName}}() validation failed: %v", err)
+                t.Errorf("{{$displayFuncName}}() validation failed: %v", err)
             }
 		})
 	}

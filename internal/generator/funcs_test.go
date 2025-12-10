@@ -33,7 +33,29 @@ func TestFuncMap(t *testing.T) {
 	defaultInit := func(t *testing.T, tt *test) {}
 	defaultCleanup := func(t *testing.T, tt *test) {}
 	tests := []test{
-		// TODO: Add test cases.
+		{
+			name: "exists",
+			args: args{},
+			want: wants{
+				want0: template.FuncMap{
+					"add":          add,
+					"receiverName": receiverName,
+					"isFuzzable":   isFuzzable,
+					"isFunc":       isFunc,
+				},
+			},
+			validate: func(t *testing.T, got0 template.FuncMap, tt *test) error {
+				if len(got0) != 4 {
+					return fmt.Errorf("FuncMap() length = %v, want 4", len(got0))
+				}
+				for k := range tt.want.want0 {
+					if _, ok := got0[k]; !ok {
+						return fmt.Errorf("FuncMap() missing key %v", k)
+					}
+				}
+				return nil
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -83,7 +105,16 @@ func Test_add(t *testing.T) {
 	defaultInit := func(t *testing.T, tt *test) {}
 	defaultCleanup := func(t *testing.T, tt *test) {}
 	tests := []test{
-		// TODO: Add test cases.
+		{
+			name: "1+1",
+			args: args{a: 1, b: 1},
+			want: wants{want0: 2},
+		},
+		{
+			name: "negative",
+			args: args{a: -1, b: -1},
+			want: wants{want0: -2},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -110,13 +141,13 @@ func Test_add(t *testing.T) {
 	}
 }
 
-func Test_isFunc(t *testing.T) {
+func Test_receiverName(t *testing.T) {
 	t.Parallel()
 	type args struct {
 		t string
 	}
 	type wants struct {
-		want0 bool
+		want0 string
 	}
 	type test struct {
 		name     string
@@ -124,18 +155,42 @@ func Test_isFunc(t *testing.T) {
 		want     wants
 		init     func(t *testing.T, tt *test)
 		cleanup  func(t *testing.T, tt *test)
-		validate func(t *testing.T, got0 bool, tt *test) error
+		validate func(t *testing.T, got0 string, tt *test) error
 	}
-	defaultValidate := func(t *testing.T, got0 bool, tt *test) error {
+	defaultValidate := func(t *testing.T, got0 string, tt *test) error {
 		if !reflect.DeepEqual(got0, tt.want.want0) {
-			return fmt.Errorf("isFunc() got0 = %v, want %v", got0, tt.want.want0)
+			return fmt.Errorf("receiverName() got0 = %v, want %v", got0, tt.want.want0)
 		}
 		return nil
 	}
 	defaultInit := func(t *testing.T, tt *test) {}
 	defaultCleanup := func(t *testing.T, tt *test) {}
 	tests := []test{
-		// TODO: Add test cases.
+		{
+			name: "pointer",
+			args: args{t: "*MyType"},
+			want: wants{want0: "MyType"},
+		},
+		{
+			name: "value",
+			args: args{t: "MyType"},
+			want: wants{want0: "MyType"},
+		},
+		{
+			name: "generic",
+			args: args{t: "*List[int]"},
+			want: wants{want0: "List"},
+		},
+		{
+			name: "package qualified",
+			args: args{t: "model.User"},
+			want: wants{want0: "User"},
+		},
+		{
+			name: "unexported to exported",
+			args: args{t: "*calculator"},
+			want: wants{want0: "Calculator"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -148,14 +203,14 @@ func Test_isFunc(t *testing.T) {
 				tt.cleanup = defaultCleanup
 			}
 			defer tt.cleanup(t, &tt)
-			got0 := isFunc(
+			got0 := receiverName(
 				tt.args.t,
 			)
 			if tt.validate == nil {
 				tt.validate = defaultValidate
 			}
 			if err := tt.validate(t, got0, &tt); err != nil {
-				t.Errorf("isFunc() validation failed: %v", err)
+				t.Errorf("receiverName() validation failed: %v", err)
 			}
 		})
 	}
@@ -187,7 +242,29 @@ func Test_isFuzzable(t *testing.T) {
 	defaultInit := func(t *testing.T, tt *test) {}
 	defaultCleanup := func(t *testing.T, tt *test) {}
 	tests := []test{
-		// TODO: Add test cases.
+		{
+			name: "int",
+			args: args{t: "int", typeParams: nil},
+			want: wants{want0: true},
+		},
+		{
+			name: "string",
+			args: args{t: "string", typeParams: nil},
+			want: wants{want0: true},
+		},
+		{
+			name: "unsupported struct",
+			args: args{t: "MyStruct", typeParams: nil},
+			want: wants{want0: false},
+		},
+		{
+			name: "type param match",
+			args: args{
+				t:          "T",
+				typeParams: []*models.Field{{Name: "T"}},
+			},
+			want: wants{want0: true},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -214,13 +291,13 @@ func Test_isFuzzable(t *testing.T) {
 	}
 }
 
-func Test_receiverName(t *testing.T) {
+func Test_isFunc(t *testing.T) {
 	t.Parallel()
 	type args struct {
 		t string
 	}
 	type wants struct {
-		want0 string
+		want0 bool
 	}
 	type test struct {
 		name     string
@@ -228,18 +305,27 @@ func Test_receiverName(t *testing.T) {
 		want     wants
 		init     func(t *testing.T, tt *test)
 		cleanup  func(t *testing.T, tt *test)
-		validate func(t *testing.T, got0 string, tt *test) error
+		validate func(t *testing.T, got0 bool, tt *test) error
 	}
-	defaultValidate := func(t *testing.T, got0 string, tt *test) error {
+	defaultValidate := func(t *testing.T, got0 bool, tt *test) error {
 		if !reflect.DeepEqual(got0, tt.want.want0) {
-			return fmt.Errorf("receiverName() got0 = %v, want %v", got0, tt.want.want0)
+			return fmt.Errorf("isFunc() got0 = %v, want %v", got0, tt.want.want0)
 		}
 		return nil
 	}
 	defaultInit := func(t *testing.T, tt *test) {}
 	defaultCleanup := func(t *testing.T, tt *test) {}
 	tests := []test{
-		// TODO: Add test cases.
+		{
+			name: "func type",
+			args: args{t: "func()"},
+			want: wants{want0: true},
+		},
+		{
+			name: "non-func type",
+			args: args{t: "int"},
+			want: wants{want0: false},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -252,14 +338,14 @@ func Test_receiverName(t *testing.T) {
 				tt.cleanup = defaultCleanup
 			}
 			defer tt.cleanup(t, &tt)
-			got0 := receiverName(
+			got0 := isFunc(
 				tt.args.t,
 			)
 			if tt.validate == nil {
 				tt.validate = defaultValidate
 			}
 			if err := tt.validate(t, got0, &tt); err != nil {
-				t.Errorf("receiverName() validation failed: %v", err)
+				t.Errorf("isFunc() validation failed: %v", err)
 			}
 		})
 	}

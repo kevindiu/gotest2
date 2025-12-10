@@ -7,6 +7,10 @@
 {{- else if not .IsExported }}
     {{- $testFuncName = printf "_%s" .Name }}
 {{- end }}
+    {{- $displayFuncName := .Name }}
+    {{- if .Receiver}}
+        {{- $displayFuncName = printf "%s_%s" (receiverName .Receiver.Type) .Name }}
+    {{- end }}
 func Test{{$testFuncName}}(t *testing.T) {
     {{- if .Parallel }}
     t.Parallel()
@@ -63,6 +67,8 @@ func Test{{$testFuncName}}(t *testing.T) {
         {{- end }}
     }
 
+
+
     {{- if or (gt $nonErrorResults 0) $hasErr }}
     defaultValidate := func(t *testing.T, {{range $i, $r := .Results}}{{if eq $r.Type "error"}}{{if $multipleErrors}}gotErr{{$i}} error{{else}}gotErr error{{end}}{{else}}got{{$i}} {{$r.Type}}{{end}}, {{end}}tt *test) error {
         {{- $counter := 0 }}
@@ -70,19 +76,19 @@ func Test{{$testFuncName}}(t *testing.T) {
             {{- if ne $r.Type "error" }}
                 {{- if not (isFunc $r.Type) }}
             if !reflect.DeepEqual(got{{$i}}, tt.want.want{{$counter}}) {
-                return fmt.Errorf("{{$testFuncName}}() got{{$i}} = %v, want %v", got{{$i}}, tt.want.want{{$counter}})
+                return fmt.Errorf("{{$displayFuncName}}() got{{$i}} = %v, want %v", got{{$i}}, tt.want.want{{$counter}})
             }
                 {{- end }}
             {{- $counter = add $counter 1 }}
             {{- else if $multipleErrors }}
             if fmt.Sprint(gotErr{{$i}}) != fmt.Sprint(tt.want.wantErr{{$i}}) {
-                return fmt.Errorf("{{$testFuncName}}() error{{$i}} = %v, wantErr{{$i}} %v", gotErr{{$i}}, tt.want.wantErr{{$i}})
+                return fmt.Errorf("{{$displayFuncName}}() error{{$i}} = %v, wantErr{{$i}} %v", gotErr{{$i}}, tt.want.wantErr{{$i}})
             }
                 {{- end }}
             {{- end }}
             {{- if and $hasErr (not $multipleErrors) }}
             if fmt.Sprint(gotErr) != fmt.Sprint(tt.want.wantErr) {
-                return fmt.Errorf("{{$testFuncName}}() error = %v, wantErr %v", gotErr, tt.want.wantErr)
+                return fmt.Errorf("{{$displayFuncName}}() error = %v, wantErr %v", gotErr, tt.want.wantErr)
             }
             {{- end}}
         return nil
@@ -124,7 +130,7 @@ func Test{{$testFuncName}}(t *testing.T) {
             {{- end}}
             if tt.validate == nil { tt.validate = defaultValidate }
             if err := tt.validate(t, {{range $i, $r := .Results}}{{if eq $r.Type "error"}}{{if $multipleErrors}}err{{$i}}{{else}}err{{end}}{{else}}got{{$i}}{{end}}, {{end}}&tt); err != nil {
-                t.Errorf("{{$testFuncName}}() validation failed: %v", err)
+                t.Errorf("{{$displayFuncName}}() validation failed: %v", err)
             }
 		})
 	}

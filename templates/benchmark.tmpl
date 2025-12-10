@@ -7,7 +7,7 @@
     {{- end }}
     func Benchmark{{$testFuncName}}(b *testing.B) {
         b.Run("int", func(b *testing.B) {
-            benchmark{{$testFuncName}}[int](b, []testCaseBenchmark{{$testFuncName}}[int]{
+            benchmark{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}int{{end}}](b, []testCaseBenchmark{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}int{{end}}]{
                 // TODO: Add benchmark cases
             })
         })
@@ -47,7 +47,7 @@ func Benchmark{{$testFuncName}}(b *testing.B) {
             if bb.cleanup == nil { bb.cleanup = defaultCleanup }
             defer bb.cleanup(b, &bb)
             for i := 0; i < b.N; i++ {
-                {{if .Receiver}}bb.receiver.{{end}}{{.Name}}(
+                {{if .Receiver}}bb.receiver.{{end}}{{.Name}}{{if and (not .Receiver) .TypeParams}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}{{$tp.Name}}{{end}}]{{end}}(
                     {{- range .Parameters}}
                     bb.args.{{.Name}}{{if .IsVariadic}}...{{end}},
                     {{- end}}
@@ -86,7 +86,7 @@ func Benchmark{{$testFuncName}}(b *testing.B) {
                 defer bb.cleanup(b, &bb)
                 b.ResetTimer()
                 for i := 0; i < b.N; i++ {
-                    {{if .Receiver}}bb.receiver.{{end}}{{.Name}}(
+                {{if .Receiver}}bb.receiver.{{end}}{{.Name}}{{if and (not .Receiver) .TypeParams}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}{{$tp.Name}}{{end}}]{{end}}(
                         {{- range .Parameters}}
                         bb.args.{{.Name}}{{if .IsVariadic}}...{{end}},
                         {{- end}}

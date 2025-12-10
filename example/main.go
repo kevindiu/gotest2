@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/kevindiu/gotest2/example/handler"
 	"github.com/kevindiu/gotest2/example/model"
@@ -26,8 +27,19 @@ func main() {
 	http.HandleFunc("/book/list", h.ListBooksHandler)
 
 	// 5. Start Server
-	fmt.Println("Starting server on :8080...")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	port := getPort()
+	fmt.Printf("Starting server on %s...\n", port)
+	if err := http.ListenAndServe(port, nil); err != nil {
 		panic(err)
 	}
+}
+
+func getPort() string {
+	if port := os.Getenv("PORT"); port != "" {
+		if port[0] != ':' {
+			return ":" + port
+		}
+		return port
+	}
+	return ":8080"
 }

@@ -6,6 +6,16 @@ import (
 	"testing"
 )
 
+func TestNewMemoryRepository(t *testing.T) {
+	t.Parallel()
+	// TODO: Add test cases.
+	t.Run("int", func(t *testing.T) {
+		testNewMemoryRepository[int, int](t, []testCaseNewMemoryRepository[int, int]{
+			// TODO: Add test cases.
+		})
+	})
+}
+
 func TestMemoryRepository_Create(t *testing.T) {
 	t.Parallel()
 	// TODO: Add test cases.
@@ -46,14 +56,36 @@ func TestMemoryRepository_Delete(t *testing.T) {
 	})
 }
 
-func TestNewMemoryRepository(t *testing.T) {
+func testNewMemoryRepository[T any, ID comparable](t *testing.T, cases []testCaseNewMemoryRepository[T, ID]) {
 	t.Parallel()
-	// TODO: Add test cases.
-	t.Run("int", func(t *testing.T) {
-		testNewMemoryRepository[int, int](t, []testCaseNewMemoryRepository[int, int]{
-			// TODO: Add test cases.
+	for _, tt := range cases {
+		defaultValidate := func(t *testing.T, got0 *MemoryRepository[T, ID], tt *testCaseNewMemoryRepository[T, ID]) error {
+			if !reflect.DeepEqual(got0, tt.want.want0) {
+				return fmt.Errorf("NewMemoryRepository() got0 = %v, want %v", got0, tt.want.want0)
+			}
+			return nil
+		}
+		defaultInit := func(t *testing.T, tt *testCaseNewMemoryRepository[T, ID]) {}
+		defaultCleanup := func(t *testing.T, tt *testCaseNewMemoryRepository[T, ID]) {}
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if tt.init == nil {
+				tt.init = defaultInit
+			}
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
+			}
+			defer tt.cleanup(t, &tt)
+			got0 := NewMemoryRepository[T, ID]()
+			if tt.validate == nil {
+				tt.validate = defaultValidate
+			}
+			if err := tt.validate(t, got0, &tt); err != nil {
+				t.Errorf("NewMemoryRepository() validation failed: %v", err)
+			}
 		})
-	})
+	}
 }
 
 func testMemoryRepository_Create[T any, ID comparable](t *testing.T, cases []testCaseMemoryRepository_Create[T, ID]) {
@@ -197,36 +229,18 @@ func testMemoryRepository_Delete[T any, ID comparable](t *testing.T, cases []tes
 	}
 }
 
-func testNewMemoryRepository[T any, ID comparable](t *testing.T, cases []testCaseNewMemoryRepository[T, ID]) {
-	t.Parallel()
-	for _, tt := range cases {
-		defaultValidate := func(t *testing.T, got0 *MemoryRepository[T, ID], tt *testCaseNewMemoryRepository[T, ID]) error {
-			if !reflect.DeepEqual(got0, tt.want.want0) {
-				return fmt.Errorf("NewMemoryRepository() got0 = %v, want %v", got0, tt.want.want0)
-			}
-			return nil
-		}
-		defaultInit := func(t *testing.T, tt *testCaseNewMemoryRepository[T, ID]) {}
-		defaultCleanup := func(t *testing.T, tt *testCaseNewMemoryRepository[T, ID]) {}
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			if tt.init == nil {
-				tt.init = defaultInit
-			}
-			tt.init(t, &tt)
-			if tt.cleanup == nil {
-				tt.cleanup = defaultCleanup
-			}
-			defer tt.cleanup(t, &tt)
-			got0 := NewMemoryRepository[T, ID]()
-			if tt.validate == nil {
-				tt.validate = defaultValidate
-			}
-			if err := tt.validate(t, got0, &tt); err != nil {
-				t.Errorf("NewMemoryRepository() validation failed: %v", err)
-			}
-		})
+type testNewMemoryRepositoryWants[T any, ID comparable] struct {
+	want0 *MemoryRepository[T, ID]
+}
+
+type testCaseNewMemoryRepository[T any, ID comparable] struct {
+	name string
+	args struct {
 	}
+	want     testNewMemoryRepositoryWants[T, ID]
+	init     func(t *testing.T, tt *testCaseNewMemoryRepository[T, ID])
+	cleanup  func(t *testing.T, tt *testCaseNewMemoryRepository[T, ID])
+	validate func(t *testing.T, got0 *MemoryRepository[T, ID], tt *testCaseNewMemoryRepository[T, ID]) error
 }
 
 type testMemoryRepository_CreateWants[T any, ID comparable] struct {
@@ -293,18 +307,4 @@ type testCaseMemoryRepository_Delete[T any, ID comparable] struct {
 	init     func(t *testing.T, tt *testCaseMemoryRepository_Delete[T, ID])
 	cleanup  func(t *testing.T, tt *testCaseMemoryRepository_Delete[T, ID])
 	validate func(t *testing.T, gotErr error, tt *testCaseMemoryRepository_Delete[T, ID]) error
-}
-
-type testNewMemoryRepositoryWants[T any, ID comparable] struct {
-	want0 *MemoryRepository[T, ID]
-}
-
-type testCaseNewMemoryRepository[T any, ID comparable] struct {
-	name string
-	args struct {
-	}
-	want     testNewMemoryRepositoryWants[T, ID]
-	init     func(t *testing.T, tt *testCaseNewMemoryRepository[T, ID])
-	cleanup  func(t *testing.T, tt *testCaseNewMemoryRepository[T, ID])
-	validate func(t *testing.T, got0 *MemoryRepository[T, ID], tt *testCaseNewMemoryRepository[T, ID]) error
 }
