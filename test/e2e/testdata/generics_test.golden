@@ -1,0 +1,186 @@
+package testdata
+
+import (
+	"fmt"
+	"reflect"
+	"testing"
+)
+
+func TestMax(t *testing.T) {
+	t.Parallel()
+	// TODO: Add test cases.
+	t.Run("int", func(t *testing.T) {
+		testMax[int](t, []testCaseMax[int]{
+			// TODO: Add test cases.
+		})
+	})
+}
+
+func TestContainer_Get(t *testing.T) {
+	t.Parallel()
+	// TODO: Add test cases.
+	t.Run("int", func(t *testing.T) {
+		testContainer_Get[int](t, []testCaseContainer_Get[int]{
+			// TODO: Add test cases.
+		})
+	})
+}
+
+func TestMap(t *testing.T) {
+	t.Parallel()
+	// TODO: Add test cases.
+	t.Run("int", func(t *testing.T) {
+		testMap[int, int](t, []testCaseMap[int, int]{
+			// TODO: Add test cases.
+		})
+	})
+}
+
+func testMax[T int | float64](t *testing.T, cases []testCaseMax[T]) {
+	t.Parallel()
+	for _, tt := range cases {
+		defaultValidate := func(t *testing.T, got0 T, tt *testCaseMax[T]) error {
+			if !reflect.DeepEqual(got0, tt.want.want0) {
+				return fmt.Errorf("Max() got0 = %v, want %v", got0, tt.want.want0)
+			}
+			return nil
+		}
+		defaultInit := func(t *testing.T, tt *testCaseMax[T]) {}
+		defaultCleanup := func(t *testing.T, tt *testCaseMax[T]) {}
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if tt.init == nil {
+				tt.init = defaultInit
+			}
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
+			}
+			defer tt.cleanup(t, &tt)
+			got0 := Max[T](
+				tt.args.a,
+				tt.args.b,
+			)
+			if tt.validate == nil {
+				tt.validate = defaultValidate
+			}
+			if err := tt.validate(t, got0, &tt); err != nil {
+				t.Errorf("Max() validation failed: %v", err)
+			}
+		})
+	}
+}
+
+func testContainer_Get[T any](t *testing.T, cases []testCaseContainer_Get[T]) {
+	t.Parallel()
+	for _, tt := range cases {
+		defaultValidate := func(t *testing.T, got0 T, tt *testCaseContainer_Get[T]) error {
+			if !reflect.DeepEqual(got0, tt.want.want0) {
+				return fmt.Errorf("Container_Get() got0 = %v, want %v", got0, tt.want.want0)
+			}
+			return nil
+		}
+		defaultInit := func(t *testing.T, tt *testCaseContainer_Get[T]) {}
+		defaultCleanup := func(t *testing.T, tt *testCaseContainer_Get[T]) {}
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if tt.init == nil {
+				tt.init = defaultInit
+			}
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
+			}
+			defer tt.cleanup(t, &tt)
+			got0 := tt.receiver.Get()
+			if tt.validate == nil {
+				tt.validate = defaultValidate
+			}
+			if err := tt.validate(t, got0, &tt); err != nil {
+				t.Errorf("Container_Get() validation failed: %v", err)
+			}
+		})
+	}
+}
+
+func testMap[T any, R any](t *testing.T, cases []testCaseMap[T, R]) {
+	t.Parallel()
+	for _, tt := range cases {
+		defaultValidate := func(t *testing.T, got0 []R, tt *testCaseMap[T, R]) error {
+			if !reflect.DeepEqual(got0, tt.want.want0) {
+				return fmt.Errorf("Map() got0 = %v, want %v", got0, tt.want.want0)
+			}
+			return nil
+		}
+		defaultInit := func(t *testing.T, tt *testCaseMap[T, R]) {}
+		defaultCleanup := func(t *testing.T, tt *testCaseMap[T, R]) {}
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if tt.init == nil {
+				tt.init = defaultInit
+			}
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
+			}
+			defer tt.cleanup(t, &tt)
+			got0 := Map[T, R](
+				tt.args.s,
+				tt.args.f,
+			)
+			if tt.validate == nil {
+				tt.validate = defaultValidate
+			}
+			if err := tt.validate(t, got0, &tt); err != nil {
+				t.Errorf("Map() validation failed: %v", err)
+			}
+		})
+	}
+}
+
+type testMaxWants[T int | float64] struct {
+	want0 T
+}
+
+type testCaseMax[T int | float64] struct {
+	name string
+	args struct {
+		a T
+		b T
+	}
+	want     testMaxWants[T]
+	init     func(t *testing.T, tt *testCaseMax[T])
+	cleanup  func(t *testing.T, tt *testCaseMax[T])
+	validate func(t *testing.T, got0 T, tt *testCaseMax[T]) error
+}
+
+type testContainer_GetWants[T any] struct {
+	want0 T
+}
+
+type testCaseContainer_Get[T any] struct {
+	name     string
+	receiver *Container[T]
+	args     struct {
+	}
+	want     testContainer_GetWants[T]
+	init     func(t *testing.T, tt *testCaseContainer_Get[T])
+	cleanup  func(t *testing.T, tt *testCaseContainer_Get[T])
+	validate func(t *testing.T, got0 T, tt *testCaseContainer_Get[T]) error
+}
+
+type testMapWants[T any, R any] struct {
+	want0 []R
+}
+
+type testCaseMap[T any, R any] struct {
+	name string
+	args struct {
+		s []T
+		f func(T) R
+	}
+	want     testMapWants[T, R]
+	init     func(t *testing.T, tt *testCaseMap[T, R])
+	cleanup  func(t *testing.T, tt *testCaseMap[T, R])
+	validate func(t *testing.T, got0 []R, tt *testCaseMap[T, R]) error
+}

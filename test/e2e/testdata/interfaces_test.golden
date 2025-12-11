@@ -1,0 +1,114 @@
+package testdata
+
+import (
+	"fmt"
+	"io"
+	"reflect"
+	"testing"
+)
+
+func TestReadData(t *testing.T) {
+	t.Parallel()
+	type args struct {
+		r io.Reader
+	}
+	type wants struct {
+		want0   []byte
+		wantErr error
+	}
+	type test struct {
+		name     string
+		args     args
+		want     wants
+		init     func(t *testing.T, tt *test)
+		cleanup  func(t *testing.T, tt *test)
+		validate func(t *testing.T, got0 []byte, gotErr error, tt *test) error
+	}
+	defaultValidate := func(t *testing.T, got0 []byte, gotErr error, tt *test) error {
+		if !reflect.DeepEqual(got0, tt.want.want0) {
+			return fmt.Errorf("ReadData() got0 = %v, want %v", got0, tt.want.want0)
+		}
+		if fmt.Sprint(gotErr) != fmt.Sprint(tt.want.wantErr) {
+			return fmt.Errorf("ReadData() error = %v, wantErr %v", gotErr, tt.want.wantErr)
+		}
+		return nil
+	}
+	defaultInit := func(t *testing.T, tt *test) {}
+	defaultCleanup := func(t *testing.T, tt *test) {}
+	tests := []test{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if tt.init == nil {
+				tt.init = defaultInit
+			}
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
+			}
+			defer tt.cleanup(t, &tt)
+			got0, err := ReadData(
+				tt.args.r,
+			)
+			if tt.validate == nil {
+				tt.validate = defaultValidate
+			}
+			if err := tt.validate(t, got0, err, &tt); err != nil {
+				t.Errorf("ReadData() validation failed: %v", err)
+			}
+		})
+	}
+}
+
+func TestCheckInterface(t *testing.T) {
+	t.Parallel()
+	type args struct {
+		i interface{}
+	}
+	type wants struct {
+		want0 bool
+	}
+	type test struct {
+		name     string
+		args     args
+		want     wants
+		init     func(t *testing.T, tt *test)
+		cleanup  func(t *testing.T, tt *test)
+		validate func(t *testing.T, got0 bool, tt *test) error
+	}
+	defaultValidate := func(t *testing.T, got0 bool, tt *test) error {
+		if !reflect.DeepEqual(got0, tt.want.want0) {
+			return fmt.Errorf("CheckInterface() got0 = %v, want %v", got0, tt.want.want0)
+		}
+		return nil
+	}
+	defaultInit := func(t *testing.T, tt *test) {}
+	defaultCleanup := func(t *testing.T, tt *test) {}
+	tests := []test{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if tt.init == nil {
+				tt.init = defaultInit
+			}
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
+			}
+			defer tt.cleanup(t, &tt)
+			got0 := CheckInterface(
+				tt.args.i,
+			)
+			if tt.validate == nil {
+				tt.validate = defaultValidate
+			}
+			if err := tt.validate(t, got0, &tt); err != nil {
+				t.Errorf("CheckInterface() validation failed: %v", err)
+			}
+		})
+	}
+}

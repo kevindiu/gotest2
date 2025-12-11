@@ -1,0 +1,108 @@
+package testdata
+
+import (
+	"fmt"
+	"reflect"
+	"testing"
+)
+
+func TestCalculator_Add(t *testing.T) {
+	t.Parallel()
+	type args struct {
+		n int
+	}
+	type wants struct {
+		want0 int
+	}
+	type test struct {
+		name     string
+		receiver *Calculator
+		args     args
+		want     wants
+		init     func(t *testing.T, tt *test)
+		cleanup  func(t *testing.T, tt *test)
+		validate func(t *testing.T, got0 int, tt *test) error
+	}
+	defaultValidate := func(t *testing.T, got0 int, tt *test) error {
+		if !reflect.DeepEqual(got0, tt.want.want0) {
+			return fmt.Errorf("Calculator_Add() got0 = %v, want %v", got0, tt.want.want0)
+		}
+		return nil
+	}
+	defaultInit := func(t *testing.T, tt *test) {}
+	defaultCleanup := func(t *testing.T, tt *test) {}
+	tests := []test{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if tt.init == nil {
+				tt.init = defaultInit
+			}
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
+			}
+			defer tt.cleanup(t, &tt)
+			got0 := tt.receiver.Add(
+				tt.args.n,
+			)
+			if tt.validate == nil {
+				tt.validate = defaultValidate
+			}
+			if err := tt.validate(t, got0, &tt); err != nil {
+				t.Errorf("Calculator_Add() validation failed: %v", err)
+			}
+		})
+	}
+}
+
+func TestGreeter_Greet(t *testing.T) {
+	t.Parallel()
+	type args struct {
+	}
+	type wants struct {
+		want0 string
+	}
+	type test struct {
+		name     string
+		receiver Greeter
+		args     args
+		want     wants
+		init     func(t *testing.T, tt *test)
+		cleanup  func(t *testing.T, tt *test)
+		validate func(t *testing.T, got0 string, tt *test) error
+	}
+	defaultValidate := func(t *testing.T, got0 string, tt *test) error {
+		if !reflect.DeepEqual(got0, tt.want.want0) {
+			return fmt.Errorf("Greeter_Greet() got0 = %v, want %v", got0, tt.want.want0)
+		}
+		return nil
+	}
+	defaultInit := func(t *testing.T, tt *test) {}
+	defaultCleanup := func(t *testing.T, tt *test) {}
+	tests := []test{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if tt.init == nil {
+				tt.init = defaultInit
+			}
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
+			}
+			defer tt.cleanup(t, &tt)
+			got0 := tt.receiver.Greet()
+			if tt.validate == nil {
+				tt.validate = defaultValidate
+			}
+			if err := tt.validate(t, got0, &tt); err != nil {
+				t.Errorf("Greeter_Greet() validation failed: %v", err)
+			}
+		})
+	}
+}
