@@ -152,6 +152,69 @@ func Test_prepareMethods(t *testing.T) {
 				return nil
 			},
 		},
+		{
+			name: "existing test",
+			args: args{
+				funcs: []*models.FunctionInfo{{Name: "Foo", IsExported: true}},
+				existingTests: map[string]string{
+					"TestFoo": "func TestFoo(t *testing.T) {}",
+				},
+				generateTests: true,
+			},
+			validate: func(t *testing.T, got0 []MethodData, tt *test) error {
+				if len(got0) != 1 {
+					return fmt.Errorf("len = %d", len(got0))
+				}
+				if got0[0].Name != "Foo" {
+					return fmt.Errorf("name = %s", got0[0].Name)
+				}
+				if got0[0].Render {
+					return fmt.Errorf("render should be false")
+				}
+				// existing test doesn't have local struct defined
+				if got0[0].HasLocalStruct {
+					return fmt.Errorf("hasLocalStruct should be false")
+				}
+				if got0[0].ExistingSource != "func TestFoo(t *testing.T) {}" {
+					return fmt.Errorf("unexpected existing source: %s", got0[0].ExistingSource)
+				}
+				return nil
+			},
+		},
+		{
+			name: "existing test with struct",
+			args: args{
+				funcs: []*models.FunctionInfo{{Name: "Foo"}},
+				existingTests: map[string]string{
+					"TestFoo": "func TestFoo(t *testing.T) { type testFooTestCase struct {} }",
+				},
+				generateTests: true,
+			},
+			validate: func(t *testing.T, got0 []MethodData, tt *test) error {
+				if len(got0) != 1 {
+					return fmt.Errorf("len = %d", len(got0))
+				}
+				if !got0[0].HasLocalStruct {
+					return fmt.Errorf("hasLocalStruct should be true")
+				}
+				return nil
+			},
+		},
+		{
+			name: "unexported function",
+			args: args{
+				funcs: []*models.FunctionInfo{{Name: "foo", IsExported: false}},
+				generateTests: true,
+			},
+			validate: func(t *testing.T, got0 []MethodData, tt *test) error {
+				if len(got0) != 1 {
+					return fmt.Errorf("len = %d", len(got0))
+				}
+				// Expected test name for unexported function logic in generator.go
+				// getTestFuncName returns "_prefix" -> Test_prefix
+				return nil
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

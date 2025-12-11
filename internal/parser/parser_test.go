@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"go/token"
 	"go/types"
 	"os"
 	"path/filepath"
@@ -114,7 +115,51 @@ func Test_processFunction(t *testing.T) {
 	defaultInit := func(t *testing.T, tt *test) {}
 	defaultCleanup := func(t *testing.T, tt *test) {}
 	tests := []test{
-		// TODO: Add test cases.
+		{
+			name: "basic function",
+			args: args{
+				funcObj: types.NewFunc(token.NoPos, nil, "Foo",
+					types.NewSignatureType(nil, nil, nil, nil, nil, false),
+				),
+				funcs:      &[]*models.FunctionInfo{},
+				importsMap: make(map[string]struct{}),
+			},
+			validate: func(t *testing.T, tt *test) error {
+				funcs := *tt.args.funcs
+				if len(funcs) != 1 {
+					return fmt.Errorf("want 1 function, got %d", len(funcs))
+				}
+				if funcs[0].Name != "Foo" {
+					return fmt.Errorf("want Foo, got %s", funcs[0].Name)
+				}
+				return nil
+			},
+		},
+		{
+			name: "function with imports",
+			args: args{
+				funcObj: types.NewFunc(token.NoPos, nil, "Bar",
+					types.NewSignatureType(nil, nil, nil,
+						types.NewTuple(
+							types.NewVar(token.NoPos, nil, "r",
+								types.NewNamed(
+									types.NewTypeName(token.NoPos, types.NewPackage("example.com/pkg", "pkg"), "MyType", nil),
+									nil, nil,
+								),
+							),
+						),
+						nil, false),
+				),
+				funcs:      &[]*models.FunctionInfo{},
+				importsMap: make(map[string]struct{}),
+			},
+			validate: func(t *testing.T, tt *test) error {
+				if _, ok := tt.args.importsMap["example.com/pkg"]; !ok {
+					return fmt.Errorf("expected import example.com/pkg")
+				}
+				return nil
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -162,7 +207,44 @@ func Test_extractTypeParams(t *testing.T) {
 	defaultInit := func(t *testing.T, tt *test) {}
 	defaultCleanup := func(t *testing.T, tt *test) {}
 	tests := []test{
-		// TODO: Add test cases.
+		{
+			name: "no type params",
+			args: args{
+				sig:       types.NewSignatureType(nil, nil, nil, nil, nil, false),
+				info:      &models.FunctionInfo{},
+				qualifier: func(p *types.Package) string { return "" },
+			},
+			validate: func(t *testing.T, tt *test) error {
+				if len(tt.args.info.TypeParams) != 0 {
+					return fmt.Errorf("want 0 type params, got %d", len(tt.args.info.TypeParams))
+				}
+				return nil
+			},
+		},
+		{
+			name: "type params",
+			args: args{
+				sig: types.NewSignatureType(nil, nil,
+					[]*types.TypeParam{
+						types.NewTypeParam(types.NewTypeName(0, nil, "T", nil), types.NewInterfaceType(nil, nil).Complete()),
+					},
+					nil, nil, false),
+				info:      &models.FunctionInfo{},
+				qualifier: func(p *types.Package) string { return "" },
+			},
+			validate: func(t *testing.T, tt *test) error {
+				if len(tt.args.info.TypeParams) != 1 {
+					return fmt.Errorf("want 1 type param, got %d", len(tt.args.info.TypeParams))
+				}
+				if tt.args.info.TypeParams[0].Name != "T" {
+					return fmt.Errorf("want type param T, got %s", tt.args.info.TypeParams[0].Name)
+				}
+				if tt.args.info.TypeParams[0].Type != "interface{}" {
+					return fmt.Errorf("want type param interface{}, got %s", tt.args.info.TypeParams[0].Type)
+				}
+				return nil
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -300,7 +382,69 @@ func Test_extractParams(t *testing.T) {
 	defaultInit := func(t *testing.T, tt *test) {}
 	defaultCleanup := func(t *testing.T, tt *test) {}
 	tests := []test{
-		// TODO: Add test cases.
+		{
+			name: "no params",
+			args: args{
+				sig:       types.NewSignatureType(nil, nil, nil, nil, nil, false),
+				info:      &models.FunctionInfo{},
+				qualifier: func(p *types.Package) string { return "" },
+			},
+			validate: func(t *testing.T, tt *test) error {
+				if len(tt.args.info.Parameters) != 0 {
+					return fmt.Errorf("want 0 params, got %d", len(tt.args.info.Parameters))
+				}
+				return nil
+			},
+		},
+		{
+			name: "simple params",
+			args: args{
+				sig: types.NewSignatureType(nil, nil, nil,
+					types.NewTuple(
+						types.NewVar(0, nil, "a", types.Typ[types.Int]),
+						types.NewVar(0, nil, "b", types.Typ[types.String]),
+					),
+					nil, false),
+				info:      &models.FunctionInfo{},
+				qualifier: func(p *types.Package) string { return "" },
+			},
+			validate: func(t *testing.T, tt *test) error {
+				if len(tt.args.info.Parameters) != 2 {
+					return fmt.Errorf("want 2 params, got %d", len(tt.args.info.Parameters))
+				}
+				if tt.args.info.Parameters[0].Name != "a" || tt.args.info.Parameters[0].Type != "int" {
+					return fmt.Errorf("param 0 mismatch")
+				}
+				if tt.args.info.Parameters[1].Name != "b" || tt.args.info.Parameters[1].Type != "string" {
+					return fmt.Errorf("param 1 mismatch")
+				}
+				return nil
+			},
+		},
+		{
+			name: "variadic",
+			args: args{
+				sig: types.NewSignatureType(nil, nil, nil,
+					types.NewTuple(
+						types.NewVar(0, nil, "args", types.NewSlice(types.Typ[types.Int])),
+					),
+					nil, true),
+				info:      &models.FunctionInfo{},
+				qualifier: func(p *types.Package) string { return "" },
+			},
+			validate: func(t *testing.T, tt *test) error {
+				if len(tt.args.info.Parameters) != 1 {
+					return fmt.Errorf("want 1 param, got %d", len(tt.args.info.Parameters))
+				}
+				if !tt.args.info.Parameters[0].IsVariadic {
+					return fmt.Errorf("expected variadic")
+				}
+				if tt.args.info.Parameters[0].Type != "[]int" {
+					return fmt.Errorf("want []int, got %s", tt.args.info.Parameters[0].Type)
+				}
+				return nil
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -348,7 +492,41 @@ func Test_extractResults(t *testing.T) {
 	defaultInit := func(t *testing.T, tt *test) {}
 	defaultCleanup := func(t *testing.T, tt *test) {}
 	tests := []test{
-		// TODO: Add test cases.
+		{
+			name: "no results",
+			args: args{
+				sig:       types.NewSignatureType(nil, nil, nil, nil, nil, false),
+				info:      &models.FunctionInfo{},
+				qualifier: func(p *types.Package) string { return "" },
+			},
+			validate: func(t *testing.T, tt *test) error {
+				if len(tt.args.info.Results) != 0 {
+					return fmt.Errorf("want 0 results, got %d", len(tt.args.info.Results))
+				}
+				return nil
+			},
+		},
+		{
+			name: "results",
+			args: args{
+				sig: types.NewSignatureType(nil, nil, nil, nil,
+					types.NewTuple(
+						types.NewVar(0, nil, "", types.Universe.Lookup("error").Type()),
+					),
+					false),
+				info:      &models.FunctionInfo{},
+				qualifier: func(p *types.Package) string { return "" },
+			},
+			validate: func(t *testing.T, tt *test) error {
+				if len(tt.args.info.Results) != 1 {
+					return fmt.Errorf("want 1 result, got %d", len(tt.args.info.Results))
+				}
+				if tt.args.info.Results[0].Type != "error" {
+					return fmt.Errorf("want error, got %s", tt.args.info.Results[0].Type)
+				}
+				return nil
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

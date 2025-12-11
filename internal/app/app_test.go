@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -63,6 +64,57 @@ func Foo() {}
 				return nil
 			},
 		},
+		{
+			name: "run exported only",
+			init: func(t *testing.T, tt *test) {
+				tmpDir := t.TempDir()
+				code := `package main
+func Foo() {}
+func bar() {}
+`
+				srcPath := filepath.Join(tmpDir, "main.go")
+				if err := os.WriteFile(srcPath, []byte(code), 0644); err != nil {
+					t.Fatal(err)
+				}
+				tt.args.patterns = []string{srcPath}
+				tt.args.cfg = Config{
+					Tests:    true,
+					Exported: true,
+				}
+			},
+			validate: func(t *testing.T, gotErr error, tt *test) error {
+				if gotErr != nil {
+					return gotErr
+				}
+				srcPath := tt.args.patterns[0]
+				base := srcPath[:len(srcPath)-3]
+				testPath := base + "_test.go"
+				content, err := os.ReadFile(testPath)
+				if err != nil {
+					return err
+				}
+				if !contains(content, "TestFoo") {
+					return fmt.Errorf("TestFoo missing")
+				}
+				if contains(content, "Test_bar") {
+					return fmt.Errorf("Test_bar should not be present")
+				}
+				return nil
+			},
+		},
+		{
+			name: "invalid pattern",
+			args: args{
+				patterns: []string{"/invalid/path/does/not/exist.go"},
+				cfg:      Config{Tests: true},
+			},
+			validate: func(t *testing.T, gotErr error, tt *test) error {
+				if gotErr == nil {
+					return fmt.Errorf("expected error, got nil")
+				}
+				return nil
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -87,4 +139,8 @@ func Foo() {}
 			}
 		})
 	}
+}
+
+func contains(content []byte, sub string) bool {
+    return bytes.Contains(content, []byte(sub))
 }
