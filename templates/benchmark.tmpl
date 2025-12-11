@@ -1,10 +1,7 @@
 {{define "benchmark"}}
 {{- if .Benchmark }}
 {{- if .TypeParams}}
-    {{- $testFuncName := .Name }}
-    {{- if .Receiver}}
-        {{- $testFuncName = printf "%s_%s" (receiverName .Receiver.Type) .Name }}
-    {{- end }}
+    {{- $testFuncName := testName .FunctionInfo }}
     func Benchmark{{$testFuncName}}(b *testing.B) {
         b.Run("int", func(b *testing.B) {
             benchmark{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}int{{end}}](b, []testCaseBenchmark{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}int{{end}}]{
@@ -13,12 +10,7 @@
         })
     }
 {{- else}}
-{{- $testFuncName := .Name }}
-{{- if .Receiver}}
-    {{- $testFuncName = printf "%s_%s" (receiverName .Receiver.Type) .Name }}
-{{- else if not .IsExported }}
-    {{- $testFuncName = printf "_%s" .Name }}
-{{- end }}
+{{- $testFuncName := testName .FunctionInfo }}
 func Benchmark{{$testFuncName}}(b *testing.B) {
     {{- if or .Parameters .Receiver}}
     type args struct {
@@ -69,12 +61,7 @@ func Benchmark{{$testFuncName}}(b *testing.B) {
 
 {{define "benchmark_runner"}}
 {{- if and .Benchmark .TypeParams}}
-    {{- $testFuncName := .Name }}
-    {{- if .Receiver}}
-        {{- $testFuncName = printf "%s_%s" (receiverName .Receiver.Type) .Name }}
-    {{- else if not .IsExported }}
-        {{- $testFuncName = printf "_%s" .Name }}
-    {{- end }}
+    {{- $testFuncName := testName .FunctionInfo }}
     func benchmark{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}{{$tp.Name}} {{$tp.Type}}{{end}}](b *testing.B, tests []testCaseBenchmark{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}{{$tp.Name}}{{end}}]) {
         defaultInit := func(b *testing.B, tt *testCaseBenchmark{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}{{$tp.Name}}{{end}}]) {}
         defaultCleanup := func(b *testing.B, tt *testCaseBenchmark{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}{{$tp.Name}}{{end}}]) {}
@@ -100,12 +87,7 @@ func Benchmark{{$testFuncName}}(b *testing.B) {
 
 {{define "benchmark_struct"}}
 {{- if and .Benchmark .TypeParams}}
-    {{- $testFuncName := .Name }}
-    {{- if .Receiver}}
-        {{- $testFuncName = printf "%s_%s" (receiverName .Receiver.Type) .Name }}
-    {{- else if not .IsExported }}
-        {{- $testFuncName = printf "_%s" .Name }}
-    {{- end }}
+    {{- $testFuncName := testName .FunctionInfo }}
     type testCaseBenchmark{{$testFuncName}}[{{range $i, $tp := .TypeParams}}{{if $i}}, {{end}}{{$tp.Name}} {{$tp.Type}}{{end}}] struct {
         name string
         args struct {

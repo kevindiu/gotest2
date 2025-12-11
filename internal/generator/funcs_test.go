@@ -42,11 +42,13 @@ func TestFuncMap(t *testing.T) {
 					"receiverName": receiverName,
 					"isFuzzable":   isFuzzable,
 					"isFunc":       isFunc,
+					"testName":     getTestFuncName,
+					"displayName":  getDisplayFuncName,
 				},
 			},
 			validate: func(t *testing.T, got0 template.FuncMap, tt *test) error {
-				if len(got0) != 4 {
-					return fmt.Errorf("FuncMap() length = %v, want 4", len(got0))
+				if len(got0) != 6 {
+					return fmt.Errorf("FuncMap() length = %v, want 6", len(got0))
 				}
 				for k := range tt.want.want0 {
 					if _, ok := got0[k]; !ok {
@@ -286,6 +288,101 @@ func Test_isFuzzable(t *testing.T) {
 			}
 			if err := tt.validate(t, got0, &tt); err != nil {
 				t.Errorf("isFuzzable() validation failed: %v", err)
+			}
+		})
+	}
+}
+
+func Test_getDisplayFuncName(t *testing.T) {
+	t.Parallel()
+	type args struct {
+		fn *models.FunctionInfo
+	}
+	type wants struct {
+		want0 string
+	}
+	type test struct {
+		name     string
+		args     args
+		want     wants
+		init     func(t *testing.T, tt *test)
+		cleanup  func(t *testing.T, tt *test)
+		validate func(t *testing.T, got0 string, tt *test) error
+	}
+	defaultValidate := func(t *testing.T, got0 string, tt *test) error {
+		if !reflect.DeepEqual(got0, tt.want.want0) {
+			return fmt.Errorf("getDisplayFuncName() got0 = %v, want %v", got0, tt.want.want0)
+		}
+		return nil
+	}
+	defaultInit := func(t *testing.T, tt *test) {}
+	defaultCleanup := func(t *testing.T, tt *test) {}
+	tests := []test{
+		{
+			name: "simple function",
+			args: args{
+				fn: &models.FunctionInfo{
+					Name: "MyFunc",
+				},
+			},
+			want: wants{want0: "MyFunc"},
+		},
+		{
+			name: "method with pointer receiver",
+			args: args{
+				fn: &models.FunctionInfo{
+					Name: "MyMethod",
+					Receiver: &models.Receiver{
+						Type: "*MyStruct",
+					},
+				},
+			},
+			want: wants{want0: "MyStruct_MyMethod"},
+		},
+		{
+			name: "method with value receiver",
+			args: args{
+				fn: &models.FunctionInfo{
+					Name: "MyMethod",
+					Receiver: &models.Receiver{
+						Type: "MyStruct",
+					},
+				},
+			},
+			want: wants{want0: "MyStruct_MyMethod"},
+		},
+		{
+			name: "generic method",
+			args: args{
+				fn: &models.FunctionInfo{
+					Name: "MyMethod",
+					Receiver: &models.Receiver{
+						Type: "*List[int]",
+					},
+				},
+			},
+			want: wants{want0: "List_MyMethod"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if tt.init == nil {
+				tt.init = defaultInit
+			}
+			tt.init(t, &tt)
+			if tt.cleanup == nil {
+				tt.cleanup = defaultCleanup
+			}
+			defer tt.cleanup(t, &tt)
+			got0 := getDisplayFuncName(
+				tt.args.fn,
+			)
+			if tt.validate == nil {
+				tt.validate = defaultValidate
+			}
+			if err := tt.validate(t, got0, &tt); err != nil {
+				t.Errorf("getDisplayFuncName() validation failed: %v", err)
 			}
 		})
 	}

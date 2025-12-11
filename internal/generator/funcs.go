@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"fmt"
 	"strings"
 	"text/template"
 
@@ -14,6 +15,8 @@ func FuncMap() template.FuncMap {
 		"receiverName": receiverName,
 		"isFuzzable":   isFuzzable,
 		"isFunc":       isFunc,
+		"testName":     getTestFuncName,
+		"displayName":  getDisplayFuncName,
 	}
 }
 
@@ -56,6 +59,15 @@ func isFuzzable(t string, typeParams []*models.Field) bool {
 		return true
 	}
 	return false
+}
+
+// getDisplayFuncName returns the name used in display (e.g. error messages).
+func getDisplayFuncName(fn *models.FunctionInfo) string {
+	if fn.Receiver != nil {
+		t := receiverName(fn.Receiver.Type)
+		return fmt.Sprintf("%s_%s", t, fn.Name)
+	}
+	return fn.Name
 }
 
 func isFunc(t string) bool {

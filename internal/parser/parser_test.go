@@ -210,7 +210,49 @@ func Test_extractReceiver(t *testing.T) {
 	defaultInit := func(t *testing.T, tt *test) {}
 	defaultCleanup := func(t *testing.T, tt *test) {}
 	tests := []test{
-		// TODO: Add test cases.
+		{
+			name: "no receiver",
+			args: args{
+				sig:       types.NewSignatureType(nil, nil, nil, nil, nil, false),
+				info:      &models.FunctionInfo{},
+				qualifier: func(p *types.Package) string { return "" },
+			},
+			validate: func(t *testing.T, tt *test) error {
+				if tt.args.info.Receiver != nil {
+					return fmt.Errorf("want nil receiver, got %v", tt.args.info.Receiver)
+				}
+				return nil
+			},
+		},
+		{
+			name: "pointer receiver",
+			args: args{
+				sig: types.NewSignatureType(
+					types.NewVar(0, nil, "r", types.NewPointer(
+						types.NewNamed(
+							types.NewTypeName(0, nil, "MyType", nil),
+							types.NewStruct(nil, nil),
+							nil,
+						),
+					)),
+					nil, nil, nil, nil, false,
+				),
+				info:      &models.FunctionInfo{},
+				qualifier: func(p *types.Package) string { return "" },
+			},
+			validate: func(t *testing.T, tt *test) error {
+				if tt.args.info.Receiver == nil {
+					return fmt.Errorf("want receiver, got nil")
+				}
+				if tt.args.info.Receiver.Name != "r" {
+					return fmt.Errorf("want receiver name 'r', got '%s'", tt.args.info.Receiver.Name)
+				}
+				if tt.args.info.Receiver.Type != "*MyType" {
+					return fmt.Errorf("want receiver type '*MyType', got '%s'", tt.args.info.Receiver.Type)
+				}
+				return nil
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

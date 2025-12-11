@@ -1,16 +1,7 @@
 {{define "standard_test"}}
 {{- if .Render }}
-{{- $origFuncName := .Name }}
-{{- $testFuncName := .Name }}
-{{- if .Receiver}}
-    {{- $testFuncName = printf "%s_%s" (receiverName .Receiver.Type) .Name }}
-{{- else if not .IsExported }}
-    {{- $testFuncName = printf "_%s" .Name }}
-{{- end }}
-    {{- $displayFuncName := .Name }}
-    {{- if .Receiver}}
-        {{- $displayFuncName = printf "%s_%s" (receiverName .Receiver.Type) .Name }}
-    {{- end }}
+{{- $testFuncName := testName .FunctionInfo }}
+{{- $displayFuncName := displayName .FunctionInfo }}
 func Test{{$testFuncName}}(t *testing.T) {
     {{- if .Parallel }}
     t.Parallel()
@@ -71,27 +62,7 @@ func Test{{$testFuncName}}(t *testing.T) {
 
     {{- if or (gt $nonErrorResults 0) $hasErr }}
     defaultValidate := func(t *testing.T, {{range $i, $r := .Results}}{{if eq $r.Type "error"}}{{if $multipleErrors}}gotErr{{$i}} error{{else}}gotErr error{{end}}{{else}}got{{$i}} {{$r.Type}}{{end}}, {{end}}tt *test) error {
-        {{- $counter := 0 }}
-        {{- range $i, $r := .Results }}
-            {{- if ne $r.Type "error" }}
-                {{- if not (isFunc $r.Type) }}
-            if !reflect.DeepEqual(got{{$i}}, tt.want.want{{$counter}}) {
-                return fmt.Errorf("{{$displayFuncName}}() got{{$i}} = %v, want %v", got{{$i}}, tt.want.want{{$counter}})
-            }
-                {{- end }}
-            {{- $counter = add $counter 1 }}
-            {{- else if $multipleErrors }}
-            if fmt.Sprint(gotErr{{$i}}) != fmt.Sprint(tt.want.wantErr{{$i}}) {
-                return fmt.Errorf("{{$displayFuncName}}() error{{$i}} = %v, wantErr{{$i}} %v", gotErr{{$i}}, tt.want.wantErr{{$i}})
-            }
-                {{- end }}
-            {{- end }}
-            {{- if and $hasErr (not $multipleErrors) }}
-            if fmt.Sprint(gotErr) != fmt.Sprint(tt.want.wantErr) {
-                return fmt.Errorf("{{$displayFuncName}}() error = %v, wantErr %v", gotErr, tt.want.wantErr)
-            }
-            {{- end}}
-        return nil
+        {{- template "validation_body" . }}
     }
     {{- else }}
     defaultValidate := func(t *testing.T, tt *test) error {
@@ -141,12 +112,7 @@ func Test{{$testFuncName}}(t *testing.T) {
 {{end}}
 
 {{define "standard_struct"}}
-{{- $testFuncName := .Name }}
-{{- if .Receiver}}
-    {{- $testFuncName = printf "%s_%s" (receiverName .Receiver.Type) .Name }}
-{{- else if not .IsExported }}
-    {{- $testFuncName = printf "_%s" .Name }}
-{{- end }}
+{{- $testFuncName := testName .FunctionInfo }}
     {{- $nonErrorResults := 0 }}
     {{- $errorCount := 0 }}
     {{- range $i, $r := .Results }}

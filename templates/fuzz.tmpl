@@ -8,10 +8,7 @@
     {{- end }}
     
     {{- if $allParamsFuzzable }}
-{{- $fuzzTargetName := .Name }}
-{{- if not .IsExported }}
-    {{- $fuzzTargetName = printf "_%s" .Name }}
-{{- end }}
+{{- $fuzzTargetName := testName .FunctionInfo }}
 func Fuzz{{$fuzzTargetName}}(f *testing.F) {
     {{- range .TypeParams}}
     // TODO: Initialize concrete type for {{.Name}}
