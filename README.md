@@ -19,7 +19,7 @@
 ## Installation
 
 ```bash
-go install github.com/kevindiu/gotest2/cmd/gotest2@latest
+go install github.com/kevindiu/gotest2@latest
 ```
 
 ## Usage
